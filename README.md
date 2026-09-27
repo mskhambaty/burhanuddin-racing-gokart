@@ -1,32 +1,43 @@
 # Burhanuddin Racing — Cairo Karting 🏁
 
-A top-down go-kart racing game set in Cairo, built for laptop play.
-See [PLAN.md](PLAN.md) for the full plan and what's coming next.
+A go-kart racing game set in Cairo, built for playing on a laptop — with a
+trackpad or the keyboard. See [PLAN.md](PLAN.md) for the full plan and what's next.
 
-![Two karts on the Giza Pyramids Circuit](screenshot.png)
+![Steering wheel view on the Giza Pyramids Circuit](screenshot.png)
 
 ## How to play
 
 1. Download or clone this folder.
 2. Double-click **`index.html`** (opens in Chrome, Edge, Firefox or Safari). Nothing to install.
-3. On the title screen:
-   - **1 = Career.** Pick your team in the garage (← →), race for prize money
-     (Egyptian pounds), then spend it on engine, gearbox, tyres and brake upgrades.
-     Progress saves automatically.
-   - **2 = Two players.** Each player picks a team (P1: A / D, P2: ← / →), then a
-     quick race on one keyboard.
-   - **D** changes how good the computer drivers are (Easy / Medium / Hard).
-     Harder drivers pay bigger prizes: ×1.5 on Medium, ×2 on Hard.
+3. Click **START**. In the garage pick your team (◀ ▶), buy upgrades, and click **RACE**.
 
-In the garage use ↑ ↓ and Enter, or just click. Press **R** twice to start a new career.
+Everything can be clicked — you never need the keyboard for the menus.
 
-| | Player 1 | Player 2 |
-|---|---|---|
-| Accelerate | W (or ↑ in 1-player) | ↑ |
-| Brake / reverse | S (or ↓) | ↓ |
-| Steer | A / D (or ← / →) | ← / → |
+### Driving with the trackpad (the default)
 
-**P** = pause · **Esc** = back to menu · **Enter** = race again after the finish.
+- **Steer:** slide your finger left and right. The further from the middle, the harder
+  you turn. The steering wheel on screen shows exactly how much you're turning.
+- **Accelerate:** automatic.
+- **Brake:** press and hold the trackpad (or hold Space).
+
+### Driving with the keyboard
+
+Switch **Controls** to *Keyboard* on the title screen (or press T there).
+↑ / W = accelerate · ↓ / S = brake · ← → / A D = steer.
+
+### Views
+
+Click the 👁 button (top right) or press **C** to switch between:
+
+| View | What you see |
+|---|---|
+| **Steering wheel** (main) | From the driver's seat: the wheel, your hands, the kart's nose |
+| **Rear** | A camera following behind your kart |
+| **Top down** | The whole track from above |
+
+A minimap in the corner shows the whole track in the 3D views.
+
+**II** / P = pause · **Esc** = back to the garage.
 
 You start at the back of a 6-kart grid — the computer drivers (Omar, Mariam,
 Youssef, Nour and Karim) start in front. Fight your way to the front!
@@ -35,11 +46,16 @@ Tips: stay off the sand — it slows you right down. Brake *before* the corner, 
 If you cut across the sand and miss a checkpoint the lap won't count.
 Your best lap on each track is saved as the track record.
 
-## What's in the game so far (Phases 1–3)
+## What's in the game so far
+
+![Rear view](screenshot-rear.png)
+
 
 - Giza Pyramids Circuit, 3 laps
+- Three views: steering wheel (3D, from the driver's seat), rear (3D), top down
+- Trackpad driving (steer by sliding, auto-accelerate, hold to brake) or keyboard
 - Realistic-ish kart handling: grip, sliding, skid marks, sand run-off, tyre walls
-- 1 or 2 players on one keyboard, plus computer drivers to fill a 6-kart grid
+- You against 5 computer drivers on a 6-kart grid
 - Pick your team: Burhanuddin Racing (red & gold), Mercedes, BMW, Ferrari,
   Red Bull or McLaren (team colours only — no official logos)
 - Computer drivers follow a racing line, brake for corners, overtake, and make the odd mistake
@@ -52,6 +68,8 @@ Your best lap on each track is saved as the track record.
 ## Make it your own
 
 - **Change the track:** edit the points in `src/tracks/giza.js` and reload the page.
+- **Change how the trackpad steers:** `TRACKPAD_FULL_LOCK` in `src/input.js` (smaller = more sensitive).
+- **Move the cameras:** `CAMERAS` at the top of `src/view3d.js`.
 - **Change how the kart drives:** edit `KART_BASE_STATS` at the top of `src/kart.js`.
 - **Add a team or change team colours:** `TEAMS` in `src/teams.js`.
 - **Change prices, prizes or how much upgrades help:** everything is in `src/economy.js`.
@@ -63,8 +81,9 @@ Your best lap on each track is saved as the track record.
 | File | What it does |
 |---|---|
 | `index.html` | The page — open it to play |
-| `src/main.js` | Game loop and screens (menu, race, pause) |
-| `src/input.js` | Keyboard controls |
+| `src/main.js` | Game loop and screens (menu, race, pause), switching views |
+| `src/input.js` | Trackpad and keyboard controls |
+| `src/view3d.js` | The 3D views: ground, sky, 3D karts/pyramids/palms, steering wheel |
 | `src/kart.js` | Kart physics and drawing |
 | `src/track.js` | Turns points into a track; drawing helpers (pyramids, palms, grandstand) |
 | `src/tracks/` | One file per track |

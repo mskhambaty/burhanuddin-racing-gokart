@@ -37,7 +37,7 @@ const HUD = {
     ctx.fillRect(x + 12, y + 12, 14, 14);
     ctx.fillStyle = k.trim;
     ctx.fillRect(x + 12, y + 17.5, 14, 3);
-    this.text(ctx, racer.name, x + 34, y + 25, { font: 'bold 14px system-ui, sans-serif', outline: false, maxWidth: w - 104 });
+    this.text(ctx, racer.name, x + 34, y + 25, { font: 'bold 13px system-ui, sans-serif', outline: false, maxWidth: w - 116 });
     this.text(ctx, ordinal(racer.position) + '/' + race.racers.length, x + w - 12, y + 26, {
       font: 'bold 20px system-ui, sans-serif', align: 'right', color: COLORS.goldLight, outline: false,
     });
@@ -61,21 +61,25 @@ const HUD = {
     row('SPEED', k.kmh + ' km/h', y + 130, '#9fd');
   },
 
-  // Little warnings that float above a kart.
-  kartWarnings(ctx, racer) {
-    const k = racer.kart;
-    let msg = null;
+  // Warnings: above the kart in the top-down view, in the middle of the screen in 3D.
+  warnings(ctx, racer, view) {
     if (racer.finished) return;
+    let msg = null;
     if (racer.wrongWayTime > 0.8) msg = 'WRONG WAY!';
     else if (racer.missedCheckpoint) msg = 'MISSED CHECKPOINT — GO BACK';
-    if (msg) {
-      this.text(ctx, msg, k.x, k.y - 22, {
+    if (!msg) return;
+    if (view === 'top') {
+      this.text(ctx, msg, racer.kart.x, racer.kart.y - 22, {
         font: 'bold 14px system-ui, sans-serif', align: 'center', color: '#ff6b5a',
+      });
+    } else {
+      this.text(ctx, msg, GAME_WIDTH / 2, 170, {
+        font: 'bold 32px system-ui, sans-serif', align: 'center', color: '#ff6b5a', outlineWidth: 6,
       });
     }
   },
 
-  countdown(ctx, race) {
+  countdown(ctx, race, controls) {
     let label, color;
     if (race.state === 'countdown') {
       label = String(Math.ceil(race.countdown));
@@ -86,50 +90,147 @@ const HUD = {
     } else {
       return;
     }
-    this.text(ctx, label, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 30, {
+    this.text(ctx, label, GAME_WIDTH / 2, GAME_HEIGHT / 2 - 40, {
       font: 'bold 110px system-ui, sans-serif', align: 'center', color, outlineWidth: 10,
+    });
+    if (race.state === 'countdown') {
+      const hint = controls === 'trackpad'
+        ? 'Slide left / right on the trackpad to steer  ·  press & hold (or Space) to brake'
+        : 'Up = accelerate  ·  Down = brake  ·  Left / Right = steer';
+      this.text(ctx, hint, GAME_WIDTH / 2, GAME_HEIGHT / 2 + 10, {
+        font: 'bold 20px system-ui, sans-serif', align: 'center', outlineWidth: 5,
+      });
+    }
+  },
+
+  // A clickable button.
+  button(ctx, r, label, opts = {}) {
+    const hover = Input.mouseIn(r);
+    ctx.fillStyle = hover ? 'rgba(212,160,23,0.35)' : opts.fill || 'rgba(58,10,16,0.85)';
+    ctx.beginPath();
+    ctx.roundRect(r.x, r.y, r.w, r.h, 10);
+    ctx.fill();
+    ctx.strokeStyle = COLORS.gold;
+    ctx.lineWidth = opts.strong ? 3 : 1.5;
+    ctx.stroke();
+    this.text(ctx, label, r.x + r.w / 2, r.y + r.h / 2 + 1, {
+      font: opts.font || 'bold 18px system-ui, sans-serif', align: 'center', baseline: 'middle',
+      color: opts.color || '#fff', outline: false, maxWidth: r.w - 16,
     });
   },
 
-  title(ctx, track, bestLap, difficulty) {
+  menuButtons() {
+    const cx = GAME_WIDTH / 2;
+    return {
+      start: { x: cx - 200, y: 372, w: 400, h: 64 },
+      difficulty: { x: cx - 300, y: 456, w: 290, h: 48 },
+      controls: { x: cx + 10, y: 456, w: 290, h: 48 },
+    };
+  },
+
+  title(ctx, game) {
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
     const cx = GAME_WIDTH / 2;
-    this.panel(ctx, cx - 330, 150, 660, 430);
+    this.panel(ctx, cx - 330, 130, 660, 450);
 
-    this.text(ctx, 'BURHANUDDIN RACING', cx, 225, {
+    this.text(ctx, 'BURHANUDDIN RACING', cx, 205, {
       font: 'bold 54px system-ui, sans-serif', align: 'center', color: COLORS.gold, outlineWidth: 8,
     });
-    this.text(ctx, 'CAIRO KARTING', cx, 262, {
+    this.text(ctx, 'CAIRO KARTING', cx, 242, {
       font: 'bold 20px system-ui, sans-serif', align: 'center', color: '#fff', outline: false,
     });
-
-    this.text(ctx, track.name + ' · ' + track.laps + ' laps', cx, 312, {
+    this.text(ctx, game.track.name + ' · ' + game.track.laps + ' laps', cx, 292, {
       font: '18px system-ui, sans-serif', align: 'center', color: '#ddd', outline: false,
     });
-    this.text(ctx, 'Track record: ' + formatTime(bestLap), cx, 338, {
+    this.text(ctx, 'Track record: ' + formatTime(Save.get('best-lap:' + game.track.id, null)), cx, 318, {
       font: '16px system-ui, sans-serif', align: 'center', color: COLORS.goldLight, outline: false,
     });
 
-    this.text(ctx, 'Press  1  for CAREER', cx, 398, {
-      font: 'bold 24px system-ui, sans-serif', align: 'center', color: '#fff', outline: false,
+    const b = this.menuButtons();
+    this.button(ctx, b.start, 'START  ▶', { font: 'bold 28px system-ui, sans-serif', color: COLORS.gold, strong: true });
+    this.button(ctx, b.difficulty, 'Computer drivers: ' + DIFFICULTIES[game.difficulty].label);
+    this.button(ctx, b.controls, 'Controls: ' + CONTROL_MODES[game.controls]);
+
+    this.text(ctx, 'Click a button — or press Enter to start, D for difficulty, T for controls', cx, 540, {
+      font: '14px system-ui, sans-serif', align: 'center', color: '#999', outline: false,
     });
-    this.text(ctx, 'pick a team, race for prize money, upgrade your kart', cx, 422, {
-      font: '15px system-ui, sans-serif', align: 'center', color: '#aaa', outline: false,
+  },
+
+  raceButtons() {
+    return {
+      view: { x: GAME_WIDTH - 250, y: 12, w: 180, h: 44 },
+      pause: { x: GAME_WIDTH - 60, y: 12, w: 48, h: 44 },
+    };
+  },
+
+  // A small map of the whole track, with a dot for every kart.
+  minimap(ctx, race, me) {
+    const w = 256, h = 144, x = GAME_WIDTH - w - 12, y = GAME_HEIGHT - h - 12;
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.drawImage(race.track.render(), x, y, w, h);
+    ctx.restore();
+    ctx.strokeStyle = COLORS.gold;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(x, y, w, h);
+    const sx = w / GAME_WIDTH, sy = h / GAME_HEIGHT;
+    for (const r of race.racers) {
+      if (r === me) continue;
+      ctx.fillStyle = r.kart.body;
+      ctx.beginPath();
+      ctx.arc(x + r.kart.x * sx, y + r.kart.y * sy, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    // You: an arrow pointing the way you're driving.
+    const k = me.kart;
+    ctx.save();
+    ctx.translate(x + k.x * sx, y + k.y * sy);
+    ctx.rotate(k.heading);
+    ctx.fillStyle = k.body;
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(8, 0);
+    ctx.lineTo(-6, -6);
+    ctx.lineTo(-3, 0);
+    ctx.lineTo(-6, 6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  },
+
+  // Shows how far the trackpad is steering (the steering wheel does this in the cockpit view).
+  steerMeter(ctx, kart) {
+    const w = 300, x = GAME_WIDTH / 2 - w / 2, y = GAME_HEIGHT - 28;
+    ctx.fillStyle = 'rgba(58,10,16,0.75)';
+    ctx.beginPath();
+    ctx.roundRect(x - 8, y - 10, w + 16, 20, 10);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.35)';
+    ctx.fillRect(GAME_WIDTH / 2 - 1, y - 7, 2, 14);
+    ctx.fillStyle = COLORS.gold;
+    ctx.beginPath();
+    ctx.arc(GAME_WIDTH / 2 + kart.steerVisual * (w / 2), y, 7, 0, Math.PI * 2);
+    ctx.fill();
+  },
+
+  // Everything drawn over the race.
+  raceHud(ctx, game, race, me) {
+    this.warnings(ctx, me, game.view);
+    this.leaderboard(ctx, race);
+    this.racerPanel(ctx, race, me, 12, 12);
+    if (game.view !== 'top') this.minimap(ctx, race, me);
+    if (game.view !== 'cockpit' && game.controls === 'trackpad') this.steerMeter(ctx, me.kart);
+    const b = this.raceButtons();
+    this.button(ctx, b.view, '👁 ' + VIEW_LABELS[game.view], { font: 'bold 16px system-ui, sans-serif' });
+    this.button(ctx, b.pause, game.screen === 'paused' ? '▶' : 'II', { font: 'bold 18px system-ui, sans-serif' });
+    this.text(ctx, 'C = change view', b.view.x + b.view.w / 2, b.view.y + b.view.h + 16, {
+      font: '12px system-ui, sans-serif', align: 'center', color: '#eee', outlineWidth: 3,
     });
-    this.text(ctx, 'Press  2  for TWO PLAYERS', cx, 470, {
-      font: 'bold 24px system-ui, sans-serif', align: 'center', color: '#fff', outline: false,
-    });
-    this.text(ctx, 'pick your teams · Player 1: W A S D     ·     Player 2: Arrow keys', cx, 494, {
-      font: '15px system-ui, sans-serif', align: 'center', color: '#aaa', outline: false,
-    });
-    this.text(ctx, 'Computer drivers: ' + DIFFICULTIES[difficulty].label + '   (press D to change)', cx, 528, {
-      font: 'bold 16px system-ui, sans-serif', align: 'center', color: COLORS.goldLight, outline: false,
-    });
-    this.text(ctx, 'Up = accelerate · Down = brake · Left/Right = steer · P = pause · Esc = menu', cx, 554, {
-      font: '14px system-ui, sans-serif', align: 'center', color: '#888', outline: false,
-    });
+    this.countdown(ctx, race, game.controls);
   },
 
   paused(ctx) {
@@ -138,7 +239,7 @@ const HUD = {
     this.text(ctx, 'PAUSED', GAME_WIDTH / 2, GAME_HEIGHT / 2, {
       font: 'bold 64px system-ui, sans-serif', align: 'center', color: COLORS.gold, outlineWidth: 8,
     });
-    this.text(ctx, 'P = keep racing · Esc = menu', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40, {
+    this.text(ctx, 'Click or press P to keep racing  ·  Esc = back to the garage', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40, {
       font: '18px system-ui, sans-serif', align: 'center',
     });
   },
@@ -226,7 +327,7 @@ const HUD = {
         font: 'bold 18px system-ui, sans-serif', align: 'center', color: '#5dff7a', outline: false,
       });
     }
-    const next = prize != null ? 'Enter = back to the garage' : 'Enter = race again   ·   Esc = menu';
+    const next = 'Click or press Enter to go back to the garage';
     this.text(ctx, next, cx, footY, {
       font: '17px system-ui, sans-serif', align: 'center', color: '#ddd', outline: false,
     });

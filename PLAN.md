@@ -37,8 +37,8 @@ and you unlock new tracks, from the Giza Pyramids to the streets of Downtown.
 |---|---|---|
 | View | **2D top-down** (like classic Micro Machines) | Much simpler to build and change than 3D; still fun and fast. 3D can come much later. |
 | Technology | **Plain JavaScript + HTML5 Canvas**, no install | Open `index.html` in Chrome and play. Easy for a 14-year-old to read and tweak. |
-| Controls | 1 player: Arrow keys or WASD. 2 players: P1 = WASD, P2 = Arrow keys | Two people can race on one laptop keyboard. |
-| Camera | The whole track fits on one screen | Makes 2 players on one screen easy — no split screen needed. |
+| Controls | **Trackpad** (slide to steer, auto-accelerate, hold to brake), or keyboard | The MacBook Air's small arrow keys are hard to use; the trackpad is easier. |
+| Views | **Steering wheel** (main), **rear**, **top down** — switch with C or the 👁 button | 3D views use the "Mode 7" trick from classic kart games: no install, runs in any browser. |
 | Driving feel | **Realistic karting** — no power-ups or boosts | Grip, braking points and racing lines matter. Sand run-off slows you down; tyre walls stop you. |
 | Saving | Browser `localStorage` | Money and upgrades survive closing the laptop. No server needed. |
 | Money | Egyptian pounds (EGP) | Makes it feel local. |
@@ -103,24 +103,21 @@ Each phase ends with something playable. We only move on when the current phase 
 
 ### Phase 1 — Drive a kart ✅ done (first playable)
 - A kart you can steer with realistic-ish handling: accelerate, brake, turn, slide a little when pushing hard.
-- 1 or 2 players on the same keyboard (time trial against each other).
 - Giza Pyramids track: road, sand off-track (slows you down), walls/barriers.
 - Checkpoints so laps only count if you go all the way around.
 - Lap counter and lap timer, best lap time.
 
 ### Phase 2 — Race against the computer ✅ done
-- AI karts (5 in 1-player, 4 in 2-player) that follow a racing line, brake for corners, overtake and make small mistakes.
+- 5 AI karts that follow a racing line, brake for corners, overtake and make small mistakes.
 - Easy / Medium / Hard difficulty.
 - Start grid, 3-2-1-GO countdown, live position (1st/6th), finish screen.
 - Kart-to-kart bumping.
-- 2 players + AI karts in the same race.
 
 ### Phase 3 — Money and garage ✅ done
 - Prize money after each race.
 - Garage screen: money, kart stats bars, buy upgrades.
 - Upgrades really change how the kart drives.
 - Auto-save / load with `localStorage`, plus a "New career" option (press R twice in the garage).
-- Career mode is 1-player; the 2-player mode stays a quick race with no money.
 
 ### Phase 4 — Team and career
 - Driver Market: hire / fire drivers, teammates race with you, salaries.
@@ -154,7 +151,9 @@ burhanuddin-racing-gokart/
 │   ├── tracks/         # one file per track (giza.js, corniche.js, ...)
 │   ├── ai.js           # computer drivers
 │   ├── race.js         # laps, positions, countdown, results
-│   ├── hud.js          # lap panels, countdown, menus
+│   ├── hud.js          # lap panels, countdown, menus, minimap
+│   ├── view3d.js       # 3D views: steering wheel + rear camera
+│   ├── teams.js        # teams the player can race for
 │   ├── util.js         # small shared helpers
 │   ├── garage.js       # garage screen, upgrades, driver market
 │   ├── economy.js      # ALL prices, prizes, salaries in one place
@@ -172,11 +171,12 @@ burhanuddin-racing-gokart/
 
 ## 10. Decisions made
 
-1. **2D top-down** to start.
+1. **2D top-down** to start, then 3D views added (steering wheel, rear).
 2. **Realistic karting** — no power-ups.
-3. **2 players on one laptop** from the start (P1 WASD, P2 arrows).
+3. **One player only** (two-player mode was tried and removed). Drive with the **trackpad** (default) or keyboard.
 4. Team: **Burhanuddin Racing**, **red & gold**.
 5. Tracks: **Pyramids, Nile, Mohandessin**.
-6. Players pick a team: **Burhanuddin Racing** (red & gold), **Mercedes**, **BMW**,
+6. The player picks a team: **Burhanuddin Racing** (red & gold), **Mercedes**, **BMW**,
    **Ferrari**, **Red Bull** or **McLaren** — colours and names only, no logos.
-   Career: picked in the garage. Two players: a team-select screen before the race.
+   Picked in the garage.
+7. **Three views:** steering wheel (main), rear, top down.

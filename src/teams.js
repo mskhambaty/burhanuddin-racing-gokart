@@ -28,8 +28,8 @@ function nextTeam(id, dir) {
 function playerSetup(playerIndex, teamId) {
   const team = TEAMS[teamId] || TEAMS.burhanuddin;
   return {
-    name: 'P' + (playerIndex + 1) + ' ' + team.name,
-    shortName: 'P' + (playerIndex + 1),
+    name: team.name,
+    shortName: 'YOU',
     body: team.body,
     trim: team.trim,
     stripes: team.stripes,

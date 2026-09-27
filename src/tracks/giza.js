@@ -31,7 +31,10 @@ TRACKS.giza = new Track({
     [1020, 600],
   ],
 
-  decorate(ctx, track, rand) {
+  // Everything beside the track. Returns a list of scenery items.
+  buildScenery(track, rand) {
+    const items = [];
+
     // Pyramids of Khufu, Khafre and Menkaure (biggest first): [x, y, size].
     const pyramids = [
       [390, 390, 130],
@@ -39,25 +42,27 @@ TRACKS.giza = new Track({
       [52, 668, 56],
     ];
     for (const [x, y, size] of pyramids) {
-      if (track.isClear(x, y, size * 0.72)) drawPyramid(ctx, x, y, size);
+      if (track.isClear(x, y, size * 0.72)) items.push({ type: 'pyramid', x, y, size });
     }
 
     // Grandstand beside the start/finish straight.
-    const stand = { x: 600, y: 484, w: 200, h: 24 };
+    const stand = { type: 'stand', x: 600, y: 484, w: 200, h: 24 };
     const standClear = [[0, 0], [1, 0], [0, 1], [1, 1], [0.5, 0], [0.5, 1]]
       .every(([fx, fy]) => track.isClear(stand.x + fx * stand.w, stand.y + fy * stand.h, 0));
-    if (standClear) drawGrandstand(ctx, stand.x, stand.y, stand.w, stand.h, rand);
+    if (standClear) items.push(stand);
 
     // Palm trees scattered wherever there is space.
     for (let i = 0; i < 120; i++) {
       const x = 20 + rand() * (GAME_WIDTH - 40);
       const y = 20 + rand() * (GAME_HEIGHT - 40);
       const size = 12 + rand() * 8;
+      const rot = rand() * Math.PI * 2;
       const nearPyramid = pyramids.some(([px, py, s]) => Math.hypot(px - x, py - y) < s * 0.8 + size);
       const onStand = x > stand.x - size && x < stand.x + stand.w + size && y > stand.y - size && y < stand.y + stand.h + size;
       if (!nearPyramid && !onStand && track.isClear(x, y, size) && rand() < 0.45) {
-        drawPalm(ctx, x, y, size, rand);
+        items.push({ type: 'palm', x, y, size, rot });
       }
     }
+    return items;
   },
 });

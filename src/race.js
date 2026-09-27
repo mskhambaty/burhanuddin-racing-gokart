@@ -14,7 +14,6 @@ class Racer {
     this.kart = kart;
     this.name = kart.name;
     this.isHuman = isHuman;
-    this.controlSchemes = null; // humans: which keys they use
     this.ai = null;             // computer drivers: their brain
     this.track = track;
     this.lapsDone = 0;
@@ -64,11 +63,13 @@ class Race {
     for (let i = 0; i < playerCount; i++) {
       const p = players[i] || {};
       const setup = Object.assign(playerSetup(i, p.team), { stats: p.stats });
-      const racer = this.addRacer(setup, slot++, true);
-      // 1 player: arrows or WASD. 2 players: P1 WASD, P2 arrows.
-      racer.controlSchemes = playerCount === 1 ? ['arrows', 'wasd'] : [i === 0 ? 'wasd' : 'arrows'];
+      this.addRacer(setup, slot++, true);
     }
     this.humans = this.racers.filter((r) => r.isHuman);
+    this.controlMode = 'keyboard';   // or 'trackpad' (set by the game)
+    this.ignorePointerBrake = false; // true while a button is being clicked
+    this.finishedAt = null;          // race clock when the results appeared
+    this.standings().forEach((r, i) => (r.position = i + 1));
 
     this.countdown = COUNTDOWN_SECONDS;
     this.time = 0;          // race clock, starts at GO
@@ -106,7 +107,8 @@ class Race {
       let controls;
       if (r.ai) controls = r.ai.controls(dt);
       else if (r.finished) controls = { throttle: 0, brake: 0.3, steer: 0 }; // roll to a stop
-      else controls = Input.readControls(r.controlSchemes);
+      else if (this.state === 'finished') controls = { throttle: 0, brake: 0.3, steer: 0 };
+      else controls = Input.readControls(this.controlMode, this.ignorePointerBrake);
       r.kart.update(dt, controls, this.track);
       this.checkProgress(r, dt);
       this.makeEffects(r.kart, dt);
@@ -133,7 +135,10 @@ class Race {
       }
       const everyoneDone = this.racers.every((r) => r.finished);
       const graceOver = this.humansDoneAt != null && this.time - this.humansDoneAt > FINISH_GRACE_SECONDS;
-      if (everyoneDone || graceOver) this.state = 'finished';
+      if (everyoneDone || graceOver) {
+        this.state = 'finished';
+        this.finishedAt = this.time;
+      }
     }
   }
 

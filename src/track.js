@@ -25,14 +25,16 @@ class Track {
       road: '#4a4a4c',
       tyres: '#2b2b2b',
     }, def.colors || {});
-    this.decorate = def.decorate || null;
+    this.buildScenery = def.buildScenery || null;
+    this.scenery = null;      // pyramids, palms, grandstand (see getScenery)
     this.seed = def.seed || 1;
 
     this.halfRoad = this.roadWidth / 2 + this.kerbWidth; // kerbs count as road
     this.wallDist = this.halfRoad + this.runoff;         // distance to tyre wall
 
     this.points = this.buildCenterLine(def.points, 6);
-    this.canvas = null; // drawn lazily by render()
+    this.canvas = null;       // top-down picture, drawn lazily by render()
+    this.groundCanvas = null; // just the ground (used by the 3D views)
   }
 
   // Smooth the control points into a loop (Catmull-Rom spline), then space the
@@ -139,10 +141,38 @@ class Track {
     return this.locate(x, y).dist > this.wallDist + 8 + r;
   }
 
-  // Draw the whole track once into an off-screen canvas; each frame just
-  // copies that picture, which is much faster than redrawing everything.
+  // Scenery is a list of things like { type: 'pyramid', x, y, size }.
+  // The same list is drawn from above (top-down view) and in 3D.
+  getScenery() {
+    if (!this.scenery) {
+      this.scenery = this.buildScenery ? this.buildScenery(this, seededRandom(this.seed + 7)) : [];
+    }
+    return this.scenery;
+  }
+
+  // The full top-down picture: ground plus scenery seen from above.
   render() {
     if (this.canvas) return this.canvas;
+    const c = document.createElement('canvas');
+    c.width = GAME_WIDTH;
+    c.height = GAME_HEIGHT;
+    const ctx = c.getContext('2d');
+    ctx.drawImage(this.renderGround(), 0, 0);
+    const rand = seededRandom(this.seed + 3);
+    for (const item of this.getScenery()) {
+      if (item.type === 'pyramid') drawPyramid(ctx, item.x, item.y, item.size);
+      else if (item.type === 'palm') drawPalm(ctx, item.x, item.y, item.size, item.rot);
+      else if (item.type === 'stand') drawGrandstand(ctx, item.x, item.y, item.w, item.h, rand);
+    }
+    this.canvas = c;
+    return c;
+  }
+
+  // Draw the ground once into an off-screen canvas; each frame just copies
+  // that picture, which is much faster than redrawing everything.
+  // Scenery shadows are painted on the ground so they work in 3D too.
+  renderGround() {
+    if (this.groundCanvas) return this.groundCanvas;
     const c = document.createElement('canvas');
     c.width = GAME_WIDTH;
     c.height = GAME_HEIGHT;
@@ -203,9 +233,9 @@ class Track {
     this.drawStartLine(ctx);
     this.drawGridBoxes(ctx);
 
-    if (this.decorate) this.decorate(ctx, this, rand);
+    for (const item of this.getScenery()) drawShadow(ctx, item);
 
-    this.canvas = c;
+    this.groundCanvas = c;
     return c;
   }
 
@@ -249,18 +279,31 @@ class Track {
 // ---------- Drawing helpers for track decorations ----------
 
 // A pyramid seen from above: four triangle faces, lit from the top-left.
+// Shadows on the ground (the sun is up and to the left).
+function drawShadow(ctx, item) {
+  ctx.fillStyle = 'rgba(70,45,10,0.28)';
+  if (item.type === 'pyramid') {
+    const { x, y, size } = item;
+    const h = size / 2;
+    ctx.beginPath();
+    ctx.moveTo(x + h, y - h);
+    ctx.lineTo(x + h + size * 0.35, y + h * 0.2);
+    ctx.lineTo(x + h * 0.2, y + h + size * 0.35);
+    ctx.lineTo(x - h, y + h);
+    ctx.closePath();
+    ctx.fill();
+  } else if (item.type === 'palm') {
+    const { x, y, size } = item;
+    ctx.beginPath();
+    ctx.ellipse(x + size * 0.9, y + size * 0.9, size, size * 0.6, 0.6, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (item.type === 'stand') {
+    ctx.fillRect(item.x + 6, item.y + 6, item.w, item.h);
+  }
+}
+
 function drawPyramid(ctx, x, y, size) {
   const h = size / 2;
-  // Shadow falls to the bottom-right.
-  ctx.fillStyle = 'rgba(70,45,10,0.28)';
-  ctx.beginPath();
-  ctx.moveTo(x + h, y - h);
-  ctx.lineTo(x + h + size * 0.35, y + h * 0.2);
-  ctx.lineTo(x + h * 0.2, y + h + size * 0.35);
-  ctx.lineTo(x - h, y + h);
-  ctx.closePath();
-  ctx.fill();
-
   const faces = [
     { a: [x - h, y - h], b: [x + h, y - h], color: '#f1d9a0' }, // north (lit)
     { a: [x + h, y - h], b: [x + h, y + h], color: '#c9a260' }, // east
@@ -286,13 +329,9 @@ function drawPyramid(ctx, x, y, size) {
 }
 
 // A palm tree from above.
-function drawPalm(ctx, x, y, size, rand) {
-  ctx.fillStyle = 'rgba(60,40,10,0.25)';
-  ctx.beginPath();
-  ctx.ellipse(x + size * 0.5, y + size * 0.5, size, size * 0.6, 0.6, 0, Math.PI * 2);
-  ctx.fill();
+function drawPalm(ctx, x, y, size, rot) {
   const fronds = 7;
-  const start = rand() * Math.PI * 2;
+  const start = rot;
   for (let i = 0; i < fronds; i++) {
     const a = start + (i / fronds) * Math.PI * 2;
     ctx.save();
@@ -312,8 +351,6 @@ function drawPalm(ctx, x, y, size, rand) {
 
 // A grandstand full of fans, with the team banner on the roof.
 function drawGrandstand(ctx, x, y, w, h, rand) {
-  ctx.fillStyle = 'rgba(0,0,0,0.25)';
-  ctx.fillRect(x + 5, y + 5, w, h);
   ctx.fillStyle = '#8a8a8a';
   ctx.fillRect(x, y, w, h);
   const fanColors = ['#e74c3c', '#ffffff', '#111111', '#f2c94c', '#3498db', '#2ecc71'];
