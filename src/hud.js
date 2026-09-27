@@ -38,11 +38,9 @@ const HUD = {
     ctx.fillStyle = k.trim;
     ctx.fillRect(x + 12, y + 17.5, 14, 3);
     this.text(ctx, racer.name, x + 34, y + 25, { font: 'bold 16px system-ui, sans-serif', outline: false });
-    if (race.racers.length > 1) {
-      this.text(ctx, ordinal(racer.position), x + w - 12, y + 26, {
-        font: 'bold 22px system-ui, sans-serif', align: 'right', color: COLORS.goldLight, outline: false,
-      });
-    }
+    this.text(ctx, ordinal(racer.position) + '/' + race.racers.length, x + w - 12, y + 26, {
+      font: 'bold 20px system-ui, sans-serif', align: 'right', color: COLORS.goldLight, outline: false,
+    });
 
     const lap = Math.min(racer.lapsDone + 1, race.track.laps);
     const current = racer.finished ? racer.finishTime : race.time - racer.lapStart;
@@ -93,12 +91,12 @@ const HUD = {
     });
   },
 
-  title(ctx, track, bestLap) {
+  title(ctx, track, bestLap, difficulty) {
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
     const cx = GAME_WIDTH / 2;
-    this.panel(ctx, cx - 330, 150, 660, 420);
+    this.panel(ctx, cx - 330, 150, 660, 430);
 
     this.text(ctx, 'BURHANUDDIN RACING', cx, 225, {
       font: 'bold 54px system-ui, sans-serif', align: 'center', color: COLORS.gold, outlineWidth: 8,
@@ -126,7 +124,10 @@ const HUD = {
     this.text(ctx, 'Player 1: W A S D     ·     Player 2: Arrow keys', cx, 494, {
       font: '15px system-ui, sans-serif', align: 'center', color: '#aaa', outline: false,
     });
-    this.text(ctx, 'Up = accelerate · Down = brake · Left/Right = steer · P = pause · Esc = menu', cx, 545, {
+    this.text(ctx, 'Computer drivers: ' + DIFFICULTIES[difficulty].label + '   (press D to change)', cx, 528, {
+      font: 'bold 16px system-ui, sans-serif', align: 'center', color: COLORS.goldLight, outline: false,
+    });
+    this.text(ctx, 'Up = accelerate · Down = brake · Left/Right = steer · P = pause · Esc = menu', cx, 554, {
       font: '14px system-ui, sans-serif', align: 'center', color: '#888', outline: false,
     });
   },
@@ -142,41 +143,88 @@ const HUD = {
     });
   },
 
+  // Live race order across the top of the screen, like on TV.
+  leaderboard(ctx, race) {
+    const order = race.standings();
+    const itemW = 92, h = 26;
+    const total = itemW * order.length;
+    const x0 = GAME_WIDTH / 2 - total / 2, y = 6;
+    ctx.fillStyle = 'rgba(15,15,15,0.72)';
+    ctx.beginPath();
+    ctx.roundRect(x0 - 6, y, total + 12, h, 8);
+    ctx.fill();
+    order.forEach((r, i) => {
+      const x = x0 + i * itemW;
+      this.text(ctx, String(i + 1), x + 4, y + 18, {
+        font: 'bold 13px system-ui, sans-serif', color: '#999', outline: false,
+      });
+      ctx.fillStyle = r.kart.body;
+      ctx.fillRect(x + 16, y + 7, 5, 12);
+      this.text(ctx, r.isHuman ? r.name.replace('Player ', 'P') : r.name, x + 25, y + 18, {
+        font: (r.isHuman ? 'bold ' : '') + '13px system-ui, sans-serif',
+        color: r.isHuman ? COLORS.goldLight : '#eee', outline: false,
+      });
+    });
+  },
+
   results(ctx, race) {
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
     const cx = GAME_WIDTH / 2;
-    const rows = race.finishOrder;
-    const h = 190 + rows.length * 70;
+    const rows = race.standings();
+    const rowH = 40;
+    const h = 170 + rows.length * rowH;
     const top = GAME_HEIGHT / 2 - h / 2;
-    this.panel(ctx, cx - 300, top, 600, h);
+    this.panel(ctx, cx - 320, top, 640, h);
 
-    const heading = rows.length > 1 ? rows[0].name + ' WINS!' : 'RACE COMPLETE';
-    this.text(ctx, '🏁 ' + heading, cx, top + 55, {
-      font: 'bold 40px system-ui, sans-serif', align: 'center', color: COLORS.gold, outlineWidth: 6,
+    const winner = rows[0];
+    let heading;
+    if (race.humans.length === 1) {
+      const me = race.humans[0];
+      heading = me.position === 1 ? 'YOU WIN!' : 'You finished ' + ordinal(me.position);
+    } else {
+      heading = winner.name + ' WINS!';
+    }
+    this.text(ctx, '🏁 ' + heading, cx, top + 52, {
+      font: 'bold 38px system-ui, sans-serif', align: 'center', color: COLORS.gold, outlineWidth: 6,
     });
+
+    const mono = 'ui-monospace, Menlo, Consolas, monospace';
+    this.text(ctx, 'BEST LAP', cx + 170, top + 86, { font: '12px ' + mono, align: 'right', color: '#888', outline: false });
+    this.text(ctx, 'TIME', cx + 290, top + 86, { font: '12px ' + mono, align: 'right', color: '#888', outline: false });
 
     rows.forEach((r, i) => {
-      const y = top + 110 + i * 70;
-      this.text(ctx, ordinal(i + 1) + '  ' + r.name, cx - 260, y, {
-        font: 'bold 22px system-ui, sans-serif', outline: false,
+      const y = top + 116 + i * rowH;
+      if (r.isHuman) {
+        ctx.fillStyle = 'rgba(212,160,23,0.18)';
+        ctx.fillRect(cx - 305, y - 24, 610, rowH - 6);
+      }
+      this.text(ctx, ordinal(i + 1), cx - 290, y, {
+        font: 'bold 20px system-ui, sans-serif', color: '#aaa', outline: false,
       });
-      this.text(ctx, formatTime(r.finishTime), cx + 260, y, {
-        font: 'bold 22px ui-monospace, Menlo, Consolas, monospace', align: 'right', color: COLORS.goldLight, outline: false,
+      ctx.fillStyle = r.kart.body;
+      ctx.fillRect(cx - 238, y - 15, 8, 18);
+      this.text(ctx, r.name, cx - 220, y, {
+        font: 'bold 20px system-ui, sans-serif', color: r.isHuman ? COLORS.goldLight : '#fff', outline: false,
       });
-      this.text(ctx, 'Laps: ' + r.lapTimes.map(formatTime).join('  ·  ') + '   Best: ' + formatTime(r.bestLap), cx - 260, y + 26, {
-        font: '14px ui-monospace, Menlo, Consolas, monospace', color: '#bbb', outline: false,
+      this.text(ctx, formatTime(r.bestLap), cx + 170, y, {
+        font: '16px ' + mono, align: 'right', color: '#bbb', outline: false,
+      });
+      const lapsLeft = race.track.laps - r.lapsDone;
+      const time = r.finished ? formatTime(r.finishTime) : lapsLeft + ' lap' + (lapsLeft > 1 ? 's' : '') + ' to go';
+      this.text(ctx, time, cx + 290, y, {
+        font: 'bold 17px ' + mono, align: 'right', color: r.finished ? COLORS.goldLight : '#888', outline: false,
       });
     });
 
-    const footY = top + h - 40;
+    const footY = top + h - 22;
     if (race.newRecord) {
-      this.text(ctx, '★ NEW TRACK RECORD ★', cx, footY - 30, {
-        font: 'bold 20px system-ui, sans-serif', align: 'center', color: '#5dff7a', outline: false,
+      this.text(ctx, '★ NEW TRACK RECORD ★', cx, footY - 26, {
+        font: 'bold 18px system-ui, sans-serif', align: 'center', color: '#5dff7a', outline: false,
       });
     }
     this.text(ctx, 'Enter = race again   ·   Esc = menu', cx, footY, {
-      font: '18px system-ui, sans-serif', align: 'center', color: '#ddd', outline: false,
+      font: '17px system-ui, sans-serif', align: 'center', color: '#ddd', outline: false,
     });
   },
 };

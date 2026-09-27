@@ -11,6 +11,7 @@ const Game = {
   track: TRACKS.giza,
   race: null,
   playerCount: 1,
+  difficulty: Save.get('difficulty', 'easy'),
   skidLayer: null, // skid marks stay on the track until the next race
 
   start() {
@@ -39,13 +40,14 @@ const Game = {
 
   showMenu() {
     this.screen = 'menu';
+    this.skidLayer.getContext('2d').clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
     // Put karts on the grid behind the title card, just for looks.
-    this.race = new Race(this.track, 2);
+    this.race = new Race(this.track, 1, this.difficulty);
   },
 
   newRace(playerCount) {
     this.playerCount = playerCount;
-    this.race = new Race(this.track, playerCount);
+    this.race = new Race(this.track, playerCount, this.difficulty);
     this.skidLayer.getContext('2d').clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
     this.screen = 'race';
   },
@@ -54,6 +56,12 @@ const Game = {
     if (this.screen === 'menu') {
       if (Input.pressed('Digit1') || Input.pressed('Numpad1')) this.newRace(1);
       else if (Input.pressed('Digit2') || Input.pressed('Numpad2')) this.newRace(2);
+      else if (Input.pressed('KeyD')) {
+        const i = DIFFICULTY_ORDER.indexOf(this.difficulty);
+        this.difficulty = DIFFICULTY_ORDER[(i + 1) % DIFFICULTY_ORDER.length];
+        Save.set('difficulty', this.difficulty);
+        this.race = new Race(this.track, 1, this.difficulty);
+      }
       return;
     }
     if (Input.pressed('Escape')) {
@@ -83,7 +91,11 @@ const Game = {
     race.skids.length = 0;
     ctx.drawImage(this.skidLayer, 0, 0);
 
-    for (const r of race.racers) r.kart.draw(ctx);
+    for (const r of race.racers) {
+      ctx.globalAlpha = r.finished && !r.isHuman ? 0.45 : 1;
+      r.kart.draw(ctx);
+    }
+    ctx.globalAlpha = 1;
 
     for (const d of race.dust) {
       const a = d.life / d.max;
@@ -94,13 +106,14 @@ const Game = {
     }
 
     if (this.screen === 'menu') {
-      HUD.title(ctx, this.track, Save.get('best-lap:' + this.track.id, null));
+      HUD.title(ctx, this.track, Save.get('best-lap:' + this.track.id, null), this.difficulty);
       return;
     }
 
-    for (const r of race.racers) HUD.kartWarnings(ctx, r);
-    HUD.racerPanel(ctx, race, race.racers[0], 12, 12);
-    if (race.racers[1]) HUD.racerPanel(ctx, race, race.racers[1], GAME_WIDTH - 222, 12);
+    for (const r of race.humans) HUD.kartWarnings(ctx, r);
+    HUD.leaderboard(ctx, race);
+    HUD.racerPanel(ctx, race, race.humans[0], 12, 12);
+    if (race.humans[1]) HUD.racerPanel(ctx, race, race.humans[1], GAME_WIDTH - 222, 12);
     HUD.countdown(ctx, race);
 
     if (race.state === 'finished') HUD.results(ctx, race);

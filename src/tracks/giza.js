@@ -35,7 +35,7 @@ TRACKS.giza = new Track({
     // Pyramids of Khufu, Khafre and Menkaure (biggest first): [x, y, size].
     const pyramids = [
       [390, 390, 130],
-      [645, 55, 80],
+      [645, 84, 80],
       [52, 668, 56],
     ];
     for (const [x, y, size] of pyramids) {

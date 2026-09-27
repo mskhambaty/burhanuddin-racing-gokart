@@ -108,8 +108,9 @@ Each phase ends with something playable. We only move on when the current phase 
 - Checkpoints so laps only count if you go all the way around.
 - Lap counter and lap timer, best lap time.
 
-### Phase 2 — Race against the computer
-- 5 AI karts that follow the track line with small mistakes and different speeds.
+### Phase 2 — Race against the computer ✅ done
+- AI karts (5 in 1-player, 4 in 2-player) that follow a racing line, brake for corners, overtake and make small mistakes.
+- Easy / Medium / Hard difficulty.
 - Start grid, 3-2-1-GO countdown, live position (1st/6th), finish screen.
 - Kart-to-kart bumping.
 - 2 players + AI karts in the same race.
