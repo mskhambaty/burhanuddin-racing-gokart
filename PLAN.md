@@ -37,7 +37,9 @@ and you unlock new tracks, from the Giza Pyramids to the streets of Downtown.
 |---|---|---|
 | View | **2D top-down** (like classic Micro Machines) | Much simpler to build and change than 3D; still fun and fast. 3D can come much later. |
 | Technology | **Plain JavaScript + HTML5 Canvas**, no install | Open `index.html` in Chrome and play. Easy for a 14-year-old to read and tweak. |
-| Controls | Arrow keys or WASD, Space = handbrake/drift | Works on any laptop keyboard. |
+| Controls | 1 player: Arrow keys or WASD. 2 players: P1 = WASD, P2 = Arrow keys | Two people can race on one laptop keyboard. |
+| Camera | The whole track fits on one screen | Makes 2 players on one screen easy — no split screen needed. |
+| Driving feel | **Realistic karting** — no power-ups or boosts | Grip, braking points and racing lines matter. Sand run-off slows you down; tyre walls stop you. |
 | Saving | Browser `localStorage` | Money and upgrades survive closing the laptop. No server needed. |
 | Money | Egyptian pounds (EGP) | Makes it feel local. |
 | Language | English first, Arabic labels later | Arabic text support is an easy later add-on. |
@@ -49,13 +51,12 @@ can be designed by editing numbers — a great thing for your nephew to try hims
 
 | # | Track | Idea | Unlock |
 |---|---|---|---|
-| 1 | **Giza Pyramids Circuit** | Wide, sandy, easy. Pyramids and camels at the side of the track. | Start |
-| 2 | **Nile Corniche Sprint** | Long straights along the river, a few sharp turns, feluccas on the water. | 1 win |
-| 3 | **Khan el-Khalili Bazaar** | Narrow, twisty market alleys, lanterns and stalls. | 3 wins |
-| 4 | **Zamalek & Cairo Tower** | Island loop around the tower, bridges. | 6 wins |
-| 5 | **Downtown Tahrir Night Race** | Night race, tight city blocks, busy roundabout. | 10 wins |
+| 1 | **Giza Pyramids Circuit** | Wide, sandy, flowing. The three pyramids in the infield, palm trees, grandstand. | Start |
+| 2 | **Nile Corniche Sprint** | Long fast straights along the river with a few heavy braking zones, feluccas on the water. | 2 wins |
+| 3 | **Mohandessin Street Circuit** | Tight 90° corners around city blocks, like the streets off Gameat El Dewal. Hardest to drive. | 5 wins |
 
-Later: other Middle East cities (Dubai Marina, Riyadh, Amman/Petra desert, Alexandria seaside).
+Later: Khan el-Khalili, Zamalek & Cairo Tower, Downtown night race, and other Middle East
+cities (Dubai Marina, Riyadh, Amman/Petra desert, Alexandria seaside).
 
 ## 5. Karts, upgrades and money
 
@@ -96,12 +97,13 @@ Numbers will be tuned by playtesting — they all live in one file so they are e
 
 Each phase ends with something playable. We only move on when the current phase is fun.
 
-### Phase 0 — Setup (short)
+### Phase 0 — Setup ✅ done
 - `index.html` + `src/` folder, a game loop that draws to a canvas.
 - README with "how to play / how to run".
 
-### Phase 1 — Drive a kart ✅ first playable
-- One kart you can steer: accelerate, brake, turn, drift a little.
+### Phase 1 — Drive a kart ✅ done (first playable)
+- A kart you can steer with realistic-ish handling: accelerate, brake, turn, slide a little when pushing hard.
+- 1 or 2 players on the same keyboard (time trial against each other).
 - Giza Pyramids track: road, sand off-track (slows you down), walls/barriers.
 - Checkpoints so laps only count if you go all the way around.
 - Lap counter and lap timer, best lap time.
@@ -109,7 +111,8 @@ Each phase ends with something playable. We only move on when the current phase 
 ### Phase 2 — Race against the computer
 - 5 AI karts that follow the track line with small mistakes and different speeds.
 - Start grid, 3-2-1-GO countdown, live position (1st/6th), finish screen.
-- Basic kart-to-kart bumping.
+- Kart-to-kart bumping.
+- 2 players + AI karts in the same race.
 
 ### Phase 3 — Money and garage
 - Prize money after each race.
@@ -129,8 +132,6 @@ Each phase ends with something playable. We only move on when the current phase 
 - Arabic / English language option.
 
 ### Future ideas (once the basics are solid)
-- 2 players on one laptop (WASD vs arrow keys, split or shared screen).
-- Power-ups / boost pads (optional, arcade style).
 - Weather: sandstorm races with lower visibility.
 - Track editor so your nephew can draw his own tracks.
 - More Middle East cities and a "Middle East Grand Prix" series.
@@ -151,6 +152,8 @@ burhanuddin-racing-gokart/
 │   ├── tracks/         # one file per track (giza.js, corniche.js, ...)
 │   ├── ai.js           # computer drivers
 │   ├── race.js         # laps, positions, countdown, results
+│   ├── hud.js          # lap panels, countdown, menus
+│   ├── util.js         # small shared helpers
 │   ├── garage.js       # garage screen, upgrades, driver market
 │   ├── economy.js      # ALL prices, prizes, salaries in one place
 │   └── save.js         # save/load progress
@@ -165,10 +168,10 @@ burhanuddin-racing-gokart/
 - **Phase 4:** A hired teammate races, earns money, and costs salary; new tracks unlock.
 - **Phase 5:** Your nephew wants to keep playing. 🏁
 
-## 10. Open questions for you and your nephew
+## 10. Decisions made
 
-1. Top-down 2D OK to start? (Recommended — 3D is much bigger work.)
-2. Realistic karting, or arcade with boost pads / power-ups?
-3. Should 2-player on one laptop come early (e.g. in Phase 2) instead of later?
-4. Team name and colours? (Default: *Burhanuddin Racing*, gold & black.)
-5. Any real Cairo places he'd love as a track?
+1. **2D top-down** to start.
+2. **Realistic karting** — no power-ups.
+3. **2 players on one laptop** from the start (P1 WASD, P2 arrows).
+4. Team: **Burhanuddin Racing**, **gold & black**.
+5. Tracks: **Pyramids, Nile, Mohandessin**.

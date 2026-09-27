@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Burhanuddin Racing — Cairo Karting</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background: #111;
+      overflow: hidden;
+    }
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      /* The game draws at 1280x720 and is scaled to fit the window. */
+      width: min(100vw, calc(100vh * 16 / 9));
+      height: min(100vh, calc(100vw * 9 / 16));
+      background: #d8b774;
+      image-rendering: auto;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="game" width="1280" height="720"></canvas>
+
+  <!-- Plain scripts (not modules) so the game works by double-clicking this file. -->
+  <script src="src/util.js"></script>
+  <script src="src/input.js"></script>
+  <script src="src/save.js"></script>
+  <script src="src/track.js"></script>
+  <script src="src/tracks/giza.js"></script>
+  <script src="src/kart.js"></script>
+  <script src="src/race.js"></script>
+  <script src="src/hud.js"></script>
+  <script src="src/main.js"></script>
+</body>
+</html>
