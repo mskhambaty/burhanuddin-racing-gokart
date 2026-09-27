@@ -112,16 +112,16 @@ const HUD = {
       font: '16px system-ui, sans-serif', align: 'center', color: COLORS.goldLight, outline: false,
     });
 
-    this.text(ctx, 'Press  1  for ONE player', cx, 398, {
+    this.text(ctx, 'Press  1  for CAREER', cx, 398, {
       font: 'bold 24px system-ui, sans-serif', align: 'center', color: '#fff', outline: false,
     });
-    this.text(ctx, 'drive with the Arrow keys or W A S D', cx, 422, {
+    this.text(ctx, 'race for prize money and upgrade your kart · Arrow keys or W A S D', cx, 422, {
       font: '15px system-ui, sans-serif', align: 'center', color: '#aaa', outline: false,
     });
-    this.text(ctx, 'Press  2  for TWO players', cx, 470, {
+    this.text(ctx, 'Press  2  for TWO PLAYERS', cx, 470, {
       font: 'bold 24px system-ui, sans-serif', align: 'center', color: '#fff', outline: false,
     });
-    this.text(ctx, 'Player 1: W A S D     ·     Player 2: Arrow keys', cx, 494, {
+    this.text(ctx, 'quick race · Player 1: W A S D     ·     Player 2: Arrow keys', cx, 494, {
       font: '15px system-ui, sans-serif', align: 'center', color: '#aaa', outline: false,
     });
     this.text(ctx, 'Computer drivers: ' + DIFFICULTIES[difficulty].label + '   (press D to change)', cx, 528, {
@@ -167,7 +167,8 @@ const HUD = {
     });
   },
 
-  results(ctx, race) {
+  // prize: money won (career mode) or null.
+  results(ctx, race, prize) {
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
     const cx = GAME_WIDTH / 2;
@@ -182,6 +183,7 @@ const HUD = {
     if (race.humans.length === 1) {
       const me = race.humans[0];
       heading = me.position === 1 ? 'YOU WIN!' : 'You finished ' + ordinal(me.position);
+      if (prize != null) heading += '  +' + formatMoney(prize);
     } else {
       heading = winner.name + ' WINS!';
     }
@@ -223,7 +225,8 @@ const HUD = {
         font: 'bold 18px system-ui, sans-serif', align: 'center', color: '#5dff7a', outline: false,
       });
     }
-    this.text(ctx, 'Enter = race again   ·   Esc = menu', cx, footY, {
+    const next = prize != null ? 'Enter = back to the garage' : 'Enter = race again   ·   Esc = menu';
+    this.text(ctx, next, cx, footY, {
       font: '17px system-ui, sans-serif', align: 'center', color: '#ddd', outline: false,
     });
   },

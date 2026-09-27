@@ -11,8 +11,18 @@ const CONTROL_SCHEMES = {
 const Input = {
   held: new Set(),
   justPressed: new Set(),
+  mouse: { x: -1, y: -1, clicked: false, moved: false },
 
-  init() {
+  init(canvas) {
+    // Mouse position in game pixels (the canvas is scaled to fit the window).
+    const toGame = (e) => {
+      const r = canvas.getBoundingClientRect();
+      this.mouse.x = (e.clientX - r.left) * (GAME_WIDTH / r.width);
+      this.mouse.y = (e.clientY - r.top) * (GAME_HEIGHT / r.height);
+    };
+    canvas.addEventListener('mousemove', (e) => { toGame(e); this.mouse.moved = true; });
+    canvas.addEventListener('mousedown', (e) => { toGame(e); this.mouse.clicked = true; });
+
     window.addEventListener('keydown', (e) => {
       // Stop arrow keys / space from scrolling the page.
       if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
@@ -32,8 +42,16 @@ const Input = {
     return this.justPressed.has(code);
   },
 
+  // Is the mouse inside this rectangle?
+  mouseIn(r) {
+    const m = this.mouse;
+    return m.x >= r.x && m.x <= r.x + r.w && m.y >= r.y && m.y <= r.y + r.h;
+  },
+
   endFrame() {
     this.justPressed.clear();
+    this.mouse.clicked = false;
+    this.mouse.moved = false;
   },
 
   // Turn one or more control schemes into kart controls:

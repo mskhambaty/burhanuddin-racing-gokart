@@ -115,11 +115,12 @@ Each phase ends with something playable. We only move on when the current phase 
 - Kart-to-kart bumping.
 - 2 players + AI karts in the same race.
 
-### Phase 3 — Money and garage
+### Phase 3 — Money and garage ✅ done
 - Prize money after each race.
 - Garage screen: money, kart stats bars, buy upgrades.
 - Upgrades really change how the kart drives.
-- Auto-save / load with `localStorage`, plus a "New game" button.
+- Auto-save / load with `localStorage`, plus a "New career" option (press R twice in the garage).
+- Career mode is 1-player; the 2-player mode stays a quick race with no money.
 
 ### Phase 4 — Team and career
 - Driver Market: hire / fire drivers, teammates race with you, salaries.

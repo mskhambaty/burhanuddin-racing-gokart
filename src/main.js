@@ -1,4 +1,7 @@
 // The game loop: reads keys, moves everything, draws everything, ~60 times a second.
+//
+// Screens:  menu -> garage -> race -> (results) -> garage ...   (career)
+//           menu -> race -> (results) -> race again ...          (two players)
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -7,15 +10,17 @@ const ctx = canvas.getContext('2d');
 const STEP = 1 / 120;
 
 const Game = {
-  screen: 'menu', // menu | race | paused
+  screen: 'menu', // menu | garage | race | paused
+  mode: 'career', // career | versus
   track: TRACKS.giza,
   race: null,
-  playerCount: 1,
+  prize: null,    // prize money won in the last career race
   difficulty: Save.get('difficulty', 'easy'),
   skidLayer: null, // skid marks stay on the track until the next race
 
   start() {
-    Input.init();
+    Input.init(canvas);
+    Career.load();
     this.skidLayer = document.createElement('canvas');
     this.skidLayer.width = GAME_WIDTH;
     this.skidLayer.height = GAME_HEIGHT;
@@ -24,13 +29,15 @@ const Game = {
     let last = performance.now();
     let acc = 0;
     const frame = (now) => {
-      acc += Math.min(0.1, (now - last) / 1000);
+      const dt = Math.min(0.1, (now - last) / 1000);
       last = now;
-      this.handleKeys();
+      acc += dt;
+      this.handleKeys(dt);
       while (acc >= STEP) {
         if (this.screen === 'race') this.race.update(STEP);
         acc -= STEP;
       }
+      this.payPrizeMoney();
       this.draw();
       Input.endFrame();
       requestAnimationFrame(frame);
@@ -38,45 +45,83 @@ const Game = {
     requestAnimationFrame(frame);
   },
 
+  clearSkids() {
+    this.skidLayer.getContext('2d').clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+  },
+
   showMenu() {
     this.screen = 'menu';
-    this.skidLayer.getContext('2d').clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    this.clearSkids();
     // Put karts on the grid behind the title card, just for looks.
     this.race = new Race(this.track, 1, this.difficulty);
   },
 
-  newRace(playerCount) {
-    this.playerCount = playerCount;
-    this.race = new Race(this.track, playerCount, this.difficulty);
-    this.skidLayer.getContext('2d').clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+  showGarage() {
+    this.screen = 'garage';
+    Garage.selected = 4;
+  },
+
+  startCareerRace() {
+    this.mode = 'career';
+    this.startRace(1, [Career.kartStats()]);
+  },
+
+  startVersusRace() {
+    this.mode = 'versus';
+    this.startRace(2, []);
+  },
+
+  startRace(playerCount, playerStats) {
+    this.race = new Race(this.track, playerCount, this.difficulty, playerStats);
+    this.prize = null;
+    this.clearSkids();
     this.screen = 'race';
   },
 
-  handleKeys() {
+  // After a career race, add the prize money once.
+  payPrizeMoney() {
+    const race = this.race;
+    if (this.mode !== 'career' || this.screen !== 'race') return;
+    if (race.state !== 'finished' || this.prize != null) return;
+    this.prize = Career.recordRace(race.humans[0].position, this.difficulty);
+  },
+
+  handleKeys(dt) {
     if (this.screen === 'menu') {
-      if (Input.pressed('Digit1') || Input.pressed('Numpad1')) this.newRace(1);
-      else if (Input.pressed('Digit2') || Input.pressed('Numpad2')) this.newRace(2);
+      if (Input.pressed('Digit1') || Input.pressed('Numpad1')) this.showGarage();
+      else if (Input.pressed('Digit2') || Input.pressed('Numpad2')) this.startVersusRace();
       else if (Input.pressed('KeyD')) {
         const i = DIFFICULTY_ORDER.indexOf(this.difficulty);
         this.difficulty = DIFFICULTY_ORDER[(i + 1) % DIFFICULTY_ORDER.length];
         Save.set('difficulty', this.difficulty);
-        this.race = new Race(this.track, 1, this.difficulty);
       }
       return;
     }
-    if (Input.pressed('Escape')) {
-      this.showMenu();
+    if (this.screen === 'garage') {
+      Garage.update(this, dt);
       return;
     }
-    if (Input.pressed('KeyP')) {
+    if (Input.pressed('Escape')) {
+      // Career: back to the garage (leaving early wins nothing). Two players: menu.
+      if (this.mode === 'career') this.showGarage();
+      else this.showMenu();
+      return;
+    }
+    if (Input.pressed('KeyP') && this.race.state !== 'finished') {
       this.screen = this.screen === 'paused' ? 'race' : 'paused';
     }
     if (this.race.state === 'finished' && (Input.pressed('Enter') || Input.pressed('NumpadEnter'))) {
-      this.newRace(this.playerCount);
+      if (this.mode === 'career') this.showGarage();
+      else this.startVersusRace();
     }
   },
 
   draw() {
+    if (this.screen === 'garage') {
+      Garage.draw(ctx, this);
+      return;
+    }
+
     const race = this.race;
     ctx.drawImage(this.track.render(), 0, 0);
 
@@ -116,7 +161,7 @@ const Game = {
     if (race.humans[1]) HUD.racerPanel(ctx, race, race.humans[1], GAME_WIDTH - 222, 12);
     HUD.countdown(ctx, race);
 
-    if (race.state === 'finished') HUD.results(ctx, race);
+    if (race.state === 'finished') HUD.results(ctx, race, this.mode === 'career' ? this.prize : null);
     else if (this.screen === 'paused') HUD.paused(ctx);
   },
 };

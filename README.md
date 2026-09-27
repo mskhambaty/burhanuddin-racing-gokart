@@ -9,8 +9,14 @@ See [PLAN.md](PLAN.md) for the full plan and what's coming next.
 
 1. Download or clone this folder.
 2. Double-click **`index.html`** (opens in Chrome, Edge, Firefox or Safari). Nothing to install.
-3. On the title screen press **1** for one player or **2** for two players.
-   Press **D** to change how good the computer drivers are (Easy / Medium / Hard).
+3. On the title screen:
+   - **1 = Career.** Race for prize money (Egyptian pounds), then spend it in the
+     garage on engine, gearbox, tyres and brake upgrades. Progress saves automatically.
+   - **2 = Two players.** A quick race on one keyboard.
+   - **D** changes how good the computer drivers are (Easy / Medium / Hard).
+     Harder drivers pay bigger prizes: ×1.5 on Medium, ×2 on Hard.
+
+In the garage use ↑ ↓ and Enter, or just click. Press **R** twice to start a new career.
 
 | | Player 1 | Player 2 |
 |---|---|---|
@@ -27,7 +33,7 @@ Tips: stay off the sand — it slows you right down. Brake *before* the corner, 
 If you cut across the sand and miss a checkpoint the lap won't count.
 Your best lap on each track is saved as the track record.
 
-## What's in the game so far (Phases 1–2)
+## What's in the game so far (Phases 1–3)
 
 - Giza Pyramids Circuit, 3 laps
 - Realistic-ish kart handling: grip, sliding, skid marks, sand run-off, tyre walls
@@ -36,12 +42,15 @@ Your best lap on each track is saved as the track record.
 - Easy / Medium / Hard difficulty (remembered between games)
 - Live race order at the top of the screen, full results table at the end
 - Lap timer, last/best lap, speedometer, saved track record
+- Career mode: prize money for every finishing position, and a garage with
+  4 upgrades × 5 levels that really change how the kart drives
 
 ## Make it your own
 
 - **Change the track:** edit the points in `src/tracks/giza.js` and reload the page.
 - **Change how the kart drives:** edit `KART_BASE_STATS` at the top of `src/kart.js`.
 - **Change the colours:** `PLAYER_SETUPS` in `src/race.js`.
+- **Change prices, prizes or how much upgrades help:** everything is in `src/economy.js`.
 - **Rename the computer drivers or change their colours / skill:** `AI_DRIVERS` in `src/ai.js`.
 - **Make the computer drivers faster or slower:** `DIFFICULTIES` in `src/ai.js`.
 
@@ -56,6 +65,8 @@ Your best lap on each track is saved as the track record.
 | `src/track.js` | Turns points into a track; drawing helpers (pyramids, palms, grandstand) |
 | `src/tracks/` | One file per track |
 | `src/ai.js` | Computer drivers: racing line, braking, overtaking |
+| `src/economy.js` | Prices, prizes, upgrades and the saved career |
+| `src/garage.js` | The garage screen |
 | `src/race.js` | Countdown, laps, checkpoints, positions, results |
 | `src/hud.js` | Lap panels, countdown, menus |
 | `src/save.js` | Saves records in the browser |

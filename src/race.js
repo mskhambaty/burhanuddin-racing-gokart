@@ -52,7 +52,8 @@ class Racer {
 }
 
 class Race {
-  constructor(track, playerCount, difficulty) {
+  // playerStats: optional kart stats for each human (from garage upgrades).
+  constructor(track, playerCount, difficulty, playerStats = []) {
     this.track = track;
     this.playerCount = playerCount;
     this.racers = [];
@@ -67,7 +68,8 @@ class Race {
       racer.ai = new AIDriver(racer, this, profile, difficulty);
     }
     for (let i = 0; i < playerCount; i++) {
-      const racer = this.addRacer(PLAYER_SETUPS[i], slot++, true);
+      const setup = Object.assign({}, PLAYER_SETUPS[i], { stats: playerStats[i] });
+      const racer = this.addRacer(setup, slot++, true);
       // 1 player: arrows or WASD. 2 players: P1 WASD, P2 arrows.
       racer.controlSchemes = playerCount === 1 ? ['arrows', 'wasd'] : [i === 0 ? 'wasd' : 'arrows'];
     }
