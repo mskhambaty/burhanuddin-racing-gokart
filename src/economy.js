@@ -40,7 +40,7 @@ const Career = {
   fresh() {
     const upgrades = {};
     for (const key of UPGRADE_ORDER) upgrades[key] = 1;
-    return { money: ECONOMY.startingMoney, upgrades, races: 0, wins: 0, podiums: 0, earned: 0 };
+    return { team: 'burhanuddin', money: ECONOMY.startingMoney, upgrades, races: 0, wins: 0, podiums: 0, earned: 0 };
   },
 
   load() {

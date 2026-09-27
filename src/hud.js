@@ -10,14 +10,14 @@ const HUD = {
       ctx.lineWidth = opts.outlineWidth || 4;
       ctx.strokeStyle = 'rgba(0,0,0,0.85)';
       ctx.lineJoin = 'round';
-      ctx.strokeText(str, x, y);
+      ctx.strokeText(str, x, y, opts.maxWidth);
     }
     ctx.fillStyle = opts.color || '#fff';
-    ctx.fillText(str, x, y);
+    ctx.fillText(str, x, y, opts.maxWidth); // maxWidth squeezes long text to fit
   },
 
   panel(ctx, x, y, w, h) {
-    ctx.fillStyle = 'rgba(15,15,15,0.72)';
+    ctx.fillStyle = 'rgba(58,10,16,0.82)';
     ctx.beginPath();
     ctx.roundRect(x, y, w, h, 10);
     ctx.fill();
@@ -28,7 +28,7 @@ const HUD = {
 
   // Lap / time / speed box for one racer.
   racerPanel(ctx, race, racer, x, y) {
-    const w = 210, h = 144;
+    const w = 240, h = 144;
     this.panel(ctx, x, y, w, h);
     const k = racer.kart;
 
@@ -37,7 +37,7 @@ const HUD = {
     ctx.fillRect(x + 12, y + 12, 14, 14);
     ctx.fillStyle = k.trim;
     ctx.fillRect(x + 12, y + 17.5, 14, 3);
-    this.text(ctx, racer.name, x + 34, y + 25, { font: 'bold 16px system-ui, sans-serif', outline: false });
+    this.text(ctx, racer.name, x + 34, y + 25, { font: 'bold 14px system-ui, sans-serif', outline: false, maxWidth: w - 104 });
     this.text(ctx, ordinal(racer.position) + '/' + race.racers.length, x + w - 12, y + 26, {
       font: 'bold 20px system-ui, sans-serif', align: 'right', color: COLORS.goldLight, outline: false,
     });
@@ -115,13 +115,13 @@ const HUD = {
     this.text(ctx, 'Press  1  for CAREER', cx, 398, {
       font: 'bold 24px system-ui, sans-serif', align: 'center', color: '#fff', outline: false,
     });
-    this.text(ctx, 'race for prize money and upgrade your kart · Arrow keys or W A S D', cx, 422, {
+    this.text(ctx, 'pick a team, race for prize money, upgrade your kart', cx, 422, {
       font: '15px system-ui, sans-serif', align: 'center', color: '#aaa', outline: false,
     });
     this.text(ctx, 'Press  2  for TWO PLAYERS', cx, 470, {
       font: 'bold 24px system-ui, sans-serif', align: 'center', color: '#fff', outline: false,
     });
-    this.text(ctx, 'quick race · Player 1: W A S D     ·     Player 2: Arrow keys', cx, 494, {
+    this.text(ctx, 'pick your teams · Player 1: W A S D     ·     Player 2: Arrow keys', cx, 494, {
       font: '15px system-ui, sans-serif', align: 'center', color: '#aaa', outline: false,
     });
     this.text(ctx, 'Computer drivers: ' + DIFFICULTIES[difficulty].label + '   (press D to change)', cx, 528, {
@@ -149,7 +149,7 @@ const HUD = {
     const itemW = 92, h = 26;
     const total = itemW * order.length;
     const x0 = GAME_WIDTH / 2 - total / 2, y = 6;
-    ctx.fillStyle = 'rgba(15,15,15,0.72)';
+    ctx.fillStyle = 'rgba(58,10,16,0.82)';
     ctx.beginPath();
     ctx.roundRect(x0 - 6, y, total + 12, h, 8);
     ctx.fill();
@@ -160,7 +160,7 @@ const HUD = {
       });
       ctx.fillStyle = r.kart.body;
       ctx.fillRect(x + 16, y + 7, 5, 12);
-      this.text(ctx, r.isHuman ? r.name.replace('Player ', 'P') : r.name, x + 25, y + 18, {
+      this.text(ctx, r.kart.shortName, x + 25, y + 18, {
         font: (r.isHuman ? 'bold ' : '') + '13px system-ui, sans-serif',
         color: r.isHuman ? COLORS.goldLight : '#eee', outline: false,
       });
@@ -188,7 +188,7 @@ const HUD = {
       heading = winner.name + ' WINS!';
     }
     this.text(ctx, '🏁 ' + heading, cx, top + 52, {
-      font: 'bold 38px system-ui, sans-serif', align: 'center', color: COLORS.gold, outlineWidth: 6,
+      font: 'bold 38px system-ui, sans-serif', align: 'center', color: COLORS.gold, outlineWidth: 6, maxWidth: 600,
     });
 
     const mono = 'ui-monospace, Menlo, Consolas, monospace';
@@ -207,6 +207,7 @@ const HUD = {
       ctx.fillStyle = r.kart.body;
       ctx.fillRect(cx - 238, y - 15, 8, 18);
       this.text(ctx, r.name, cx - 220, y, {
+        maxWidth: 260,
         font: 'bold 20px system-ui, sans-serif', color: r.isHuman ? COLORS.goldLight : '#fff', outline: false,
       });
       this.text(ctx, formatTime(r.bestLap), cx + 170, y, {

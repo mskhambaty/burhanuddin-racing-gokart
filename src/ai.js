@@ -10,8 +10,8 @@ const AI_DRIVERS = [
   { name: 'Omar',    body: '#1f6fd1', trim: '#ffffff', helmet: '#ffffff', skill: 0.9 },
   { name: 'Mariam',  body: '#8e44ad', trim: '#ffffff', helmet: '#f5d0fe', skill: 1.0 },
   { name: 'Youssef', body: '#1f9d55', trim: '#111111', helmet: '#111111', skill: 0.8 },
-  { name: 'Nour',    body: '#16a085', trim: '#ffffff', helmet: '#ffffff', skill: 0.85 },
-  { name: 'Karim',   body: '#e67e22', trim: '#111111', helmet: '#111111', skill: 0.75 },
+  { name: 'Nour',    body: '#e84393', trim: '#ffffff', helmet: '#ffffff', skill: 0.85 },
+  { name: 'Karim',   body: '#9acd32', trim: '#111111', helmet: '#111111', skill: 0.75 },
 ];
 
 // How fast the computer drivers are compared with a perfect lap.

@@ -175,5 +175,8 @@ burhanuddin-racing-gokart/
 1. **2D top-down** to start.
 2. **Realistic karting** — no power-ups.
 3. **2 players on one laptop** from the start (P1 WASD, P2 arrows).
-4. Team: **Burhanuddin Racing**, **gold & black**.
+4. Team: **Burhanuddin Racing**, **red & gold**.
 5. Tracks: **Pyramids, Nile, Mohandessin**.
+6. Players pick a team: **Burhanuddin Racing** (red & gold), **Mercedes**, **BMW**,
+   **Ferrari**, **Red Bull** or **McLaren** — colours and names only, no logos.
+   Career: picked in the garage. Two players: a team-select screen before the race.

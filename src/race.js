@@ -8,12 +8,6 @@ const KARTS_PER_RACE = 6;
 // Once every human has finished, the computer drivers get this long to finish too.
 const FINISH_GRACE_SECONDS = 15;
 
-// The people who can drive. Player 1 always races in Burhanuddin Racing
-// gold & black.
-const PLAYER_SETUPS = [
-  { name: 'Player 1', body: COLORS.gold, trim: COLORS.black, helmet: COLORS.black },
-  { name: 'Player 2', body: '#c8102e', trim: '#ffffff', helmet: '#ffffff' },
-];
 
 class Racer {
   constructor(kart, track, isHuman) {
@@ -52,8 +46,8 @@ class Racer {
 }
 
 class Race {
-  // playerStats: optional kart stats for each human (from garage upgrades).
-  constructor(track, playerCount, difficulty, playerStats = []) {
+  // players: for each human, { team, stats } (stats come from garage upgrades).
+  constructor(track, playerCount, difficulty, players = []) {
     this.track = track;
     this.playerCount = playerCount;
     this.racers = [];
@@ -68,7 +62,8 @@ class Race {
       racer.ai = new AIDriver(racer, this, profile, difficulty);
     }
     for (let i = 0; i < playerCount; i++) {
-      const setup = Object.assign({}, PLAYER_SETUPS[i], { stats: playerStats[i] });
+      const p = players[i] || {};
+      const setup = Object.assign(playerSetup(i, p.team), { stats: p.stats });
       const racer = this.addRacer(setup, slot++, true);
       // 1 player: arrows or WASD. 2 players: P1 WASD, P2 arrows.
       racer.controlSchemes = playerCount === 1 ? ['arrows', 'wasd'] : [i === 0 ? 'wasd' : 'arrows'];

@@ -10,9 +10,11 @@ See [PLAN.md](PLAN.md) for the full plan and what's coming next.
 1. Download or clone this folder.
 2. Double-click **`index.html`** (opens in Chrome, Edge, Firefox or Safari). Nothing to install.
 3. On the title screen:
-   - **1 = Career.** Race for prize money (Egyptian pounds), then spend it in the
-     garage on engine, gearbox, tyres and brake upgrades. Progress saves automatically.
-   - **2 = Two players.** A quick race on one keyboard.
+   - **1 = Career.** Pick your team in the garage (← →), race for prize money
+     (Egyptian pounds), then spend it on engine, gearbox, tyres and brake upgrades.
+     Progress saves automatically.
+   - **2 = Two players.** Each player picks a team (P1: A / D, P2: ← / →), then a
+     quick race on one keyboard.
    - **D** changes how good the computer drivers are (Easy / Medium / Hard).
      Harder drivers pay bigger prizes: ×1.5 on Medium, ×2 on Hard.
 
@@ -38,6 +40,8 @@ Your best lap on each track is saved as the track record.
 - Giza Pyramids Circuit, 3 laps
 - Realistic-ish kart handling: grip, sliding, skid marks, sand run-off, tyre walls
 - 1 or 2 players on one keyboard, plus computer drivers to fill a 6-kart grid
+- Pick your team: Burhanuddin Racing (red & gold), Mercedes, BMW, Ferrari,
+  Red Bull or McLaren (team colours only — no official logos)
 - Computer drivers follow a racing line, brake for corners, overtake, and make the odd mistake
 - Easy / Medium / Hard difficulty (remembered between games)
 - Live race order at the top of the screen, full results table at the end
@@ -49,7 +53,7 @@ Your best lap on each track is saved as the track record.
 
 - **Change the track:** edit the points in `src/tracks/giza.js` and reload the page.
 - **Change how the kart drives:** edit `KART_BASE_STATS` at the top of `src/kart.js`.
-- **Change the colours:** `PLAYER_SETUPS` in `src/race.js`.
+- **Add a team or change team colours:** `TEAMS` in `src/teams.js`.
 - **Change prices, prizes or how much upgrades help:** everything is in `src/economy.js`.
 - **Rename the computer drivers or change their colours / skill:** `AI_DRIVERS` in `src/ai.js`.
 - **Make the computer drivers faster or slower:** `DIFFICULTIES` in `src/ai.js`.
@@ -67,6 +71,7 @@ Your best lap on each track is saved as the track record.
 | `src/ai.js` | Computer drivers: racing line, braking, overtaking |
 | `src/economy.js` | Prices, prizes, upgrades and the saved career |
 | `src/garage.js` | The garage screen |
+| `src/teams.js` | The teams players can pick and their kart colours |
 | `src/race.js` | Countdown, laps, checkpoints, positions, results |
 | `src/hud.js` | Lap panels, countdown, menus |
 | `src/save.js` | Saves records in the browser |

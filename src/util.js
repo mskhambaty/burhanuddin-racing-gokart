@@ -3,8 +3,10 @@
 const GAME_WIDTH = 1280;
 const GAME_HEIGHT = 720;
 
-// Team colours: gold & black.
+// Team colours: red & gold.
 const COLORS = {
+  red: '#c8102e',
+  redDark: '#3a0a10',
   gold: '#d4a017',
   goldLight: '#f2c94c',
   black: '#141414',

@@ -25,8 +25,10 @@ const KART_RADIUS = 10; // used for bumping into walls and other karts
 class Kart {
   constructor(opts) {
     this.name = opts.name;
+    this.shortName = opts.shortName || opts.name;
     this.body = opts.body;       // main colour
     this.trim = opts.trim;       // stripe colour
+    this.stripes = opts.stripes; // optional: several thin stripes instead of one
     this.helmet = opts.helmet;
     this.stats = Object.assign({}, KART_BASE_STATS, opts.stats || {});
     this.reset(opts.x, opts.y, opts.heading);
@@ -188,9 +190,18 @@ class Kart {
     ctx.closePath();
     ctx.fill();
 
-    // Racing stripe and front bumper.
+    // Racing stripe(s) and front bumper.
+    if (this.stripes) {
+      const sw = 1.3;
+      this.stripes.forEach((c, i) => {
+        ctx.fillStyle = c;
+        ctx.fillRect(-L / 2, (i - this.stripes.length / 2) * sw, L, sw);
+      });
+    } else {
+      ctx.fillStyle = this.trim;
+      ctx.fillRect(-L / 2, -1.5, L, 3);
+    }
     ctx.fillStyle = this.trim;
-    ctx.fillRect(-L / 2, -1.5, L, 3);
     ctx.fillRect(L / 2 - 2, -W * 0.3, 2, W * 0.6);
 
     // Driver's helmet.

@@ -1,7 +1,7 @@
 // The game loop: reads keys, moves everything, draws everything, ~60 times a second.
 //
-// Screens:  menu -> garage -> race -> (results) -> garage ...   (career)
-//           menu -> race -> (results) -> race again ...          (two players)
+// Screens:  menu -> garage -> race -> (results) -> garage ...           (career)
+//           menu -> teams -> race -> (results) -> race again ...          (two players)
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -10,7 +10,7 @@ const ctx = canvas.getContext('2d');
 const STEP = 1 / 120;
 
 const Game = {
-  screen: 'menu', // menu | garage | race | paused
+  screen: 'menu', // menu | garage | teams | race | paused
   mode: 'career', // career | versus
   track: TRACKS.giza,
   race: null,
@@ -63,16 +63,22 @@ const Game = {
 
   startCareerRace() {
     this.mode = 'career';
-    this.startRace(1, [Career.kartStats()]);
+    this.startRace(1, [{ team: Career.data.team, stats: Career.kartStats() }]);
   },
 
-  startVersusRace() {
+  showTeamSelect() {
+    this.screen = 'teams';
+    TeamSelect.open();
+  },
+
+  startVersusRace(teams) {
     this.mode = 'versus';
-    this.startRace(2, []);
+    this.versusTeams = teams;
+    this.startRace(2, teams.map((team) => ({ team })));
   },
 
-  startRace(playerCount, playerStats) {
-    this.race = new Race(this.track, playerCount, this.difficulty, playerStats);
+  startRace(playerCount, players) {
+    this.race = new Race(this.track, playerCount, this.difficulty, players);
     this.prize = null;
     this.clearSkids();
     this.screen = 'race';
@@ -89,7 +95,7 @@ const Game = {
   handleKeys(dt) {
     if (this.screen === 'menu') {
       if (Input.pressed('Digit1') || Input.pressed('Numpad1')) this.showGarage();
-      else if (Input.pressed('Digit2') || Input.pressed('Numpad2')) this.startVersusRace();
+      else if (Input.pressed('Digit2') || Input.pressed('Numpad2')) this.showTeamSelect();
       else if (Input.pressed('KeyD')) {
         const i = DIFFICULTY_ORDER.indexOf(this.difficulty);
         this.difficulty = DIFFICULTY_ORDER[(i + 1) % DIFFICULTY_ORDER.length];
@@ -99,6 +105,10 @@ const Game = {
     }
     if (this.screen === 'garage') {
       Garage.update(this, dt);
+      return;
+    }
+    if (this.screen === 'teams') {
+      TeamSelect.update(this);
       return;
     }
     if (Input.pressed('Escape')) {
@@ -112,13 +122,17 @@ const Game = {
     }
     if (this.race.state === 'finished' && (Input.pressed('Enter') || Input.pressed('NumpadEnter'))) {
       if (this.mode === 'career') this.showGarage();
-      else this.startVersusRace();
+      else this.startVersusRace(this.versusTeams);
     }
   },
 
   draw() {
     if (this.screen === 'garage') {
       Garage.draw(ctx, this);
+      return;
+    }
+    if (this.screen === 'teams') {
+      TeamSelect.draw(ctx);
       return;
     }
 
@@ -158,7 +172,7 @@ const Game = {
     for (const r of race.humans) HUD.kartWarnings(ctx, r);
     HUD.leaderboard(ctx, race);
     HUD.racerPanel(ctx, race, race.humans[0], 12, 12);
-    if (race.humans[1]) HUD.racerPanel(ctx, race, race.humans[1], GAME_WIDTH - 222, 12);
+    if (race.humans[1]) HUD.racerPanel(ctx, race, race.humans[1], GAME_WIDTH - 252, 12);
     HUD.countdown(ctx, race);
 
     if (race.state === 'finished') HUD.results(ctx, race, this.mode === 'career' ? this.prize : null);

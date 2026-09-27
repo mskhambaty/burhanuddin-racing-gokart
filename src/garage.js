@@ -6,6 +6,10 @@ const Garage = {
   message: null,      // { text, good, time } — a short note after buying
   resetArmed: false,  // press R twice to start a new career
   showcase: null,     // the big kart drawn on the left
+  teamArrows: {
+    left: { x: 90, y: 360, w: 44, h: 40 },
+    right: { x: 406, y: 360, w: 44, h: 40 },
+  },
 
   // Buttons: one per upgrade, then the race button.
   buttons() {
@@ -49,6 +53,18 @@ const Garage = {
       }
     }
 
+    // Change team with Left/Right or by clicking the arrows under the kart.
+    let teamDir = 0;
+    if (Input.pressed('ArrowLeft') || Input.pressed('KeyA')) teamDir = -1;
+    if (Input.pressed('ArrowRight') || Input.pressed('KeyD')) teamDir = 1;
+    if (Input.mouse.clicked && Input.mouseIn(this.teamArrows.left)) teamDir = -1;
+    if (Input.mouse.clicked && Input.mouseIn(this.teamArrows.right)) teamDir = 1;
+    if (teamDir) {
+      Career.data.team = nextTeam(Career.data.team, teamDir);
+      Career.save();
+      this.showcase = null;
+    }
+
     if (Input.pressed('KeyR')) {
       if (this.resetArmed) {
         Career.reset();
@@ -70,16 +86,16 @@ const Garage = {
 
     // Garage floor and walls.
     const bg = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
-    bg.addColorStop(0, '#2b2b2e');
-    bg.addColorStop(1, '#151517');
+    bg.addColorStop(0, '#4a0d16');
+    bg.addColorStop(1, '#1a0508');
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
     ctx.fillStyle = COLORS.gold;
     ctx.fillRect(0, 96, GAME_WIDTH, 3);
 
     // Header.
-    HUD.text(ctx, 'BURHANUDDIN RACING', 40, 52, {
-      font: 'bold 38px system-ui, sans-serif', color: COLORS.gold, outline: false,
+    HUD.text(ctx, TEAMS[c.team].name.toUpperCase(), 40, 52, {
+      font: 'bold 38px system-ui, sans-serif', color: COLORS.gold, outline: false, maxWidth: 560,
     });
     HUD.text(ctx, 'TEAM GARAGE · CAIRO', 42, 80, {
       font: 'bold 15px system-ui, sans-serif', color: '#999', outline: false,
@@ -115,13 +131,13 @@ const Garage = {
 
   drawKart(ctx) {
     if (!this.showcase) {
-      this.showcase = new Kart(Object.assign({}, PLAYER_SETUPS[0], { x: 0, y: 0, heading: -Math.PI / 2 }));
+      this.showcase = new Kart(Object.assign(playerSetup(0, Career.data.team), { x: 0, y: 0, heading: -Math.PI / 2 }));
     }
-    const cx = 270, cy = 250;
+    const cx = 270, cy = 235;
     // Turntable.
-    ctx.fillStyle = '#222';
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.beginPath();
-    ctx.ellipse(cx, cy + 10, 170, 120, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy + 5, 160, 100, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = 'rgba(212,160,23,0.5)';
     ctx.lineWidth = 3;
@@ -132,6 +148,24 @@ const Garage = {
     this.showcase.heading = -Math.PI / 2 + Math.sin(performance.now() / 1400) * 0.35;
     this.showcase.draw(ctx);
     ctx.restore();
+
+    // Team picker: ◀ Team name ▶
+    const a = this.teamArrows;
+    for (const [r, label] of [[a.left, '◀'], [a.right, '▶']]) {
+      ctx.fillStyle = Input.mouseIn(r) ? 'rgba(212,160,23,0.3)' : 'rgba(255,255,255,0.08)';
+      ctx.beginPath();
+      ctx.roundRect(r.x, r.y, r.w, r.h, 8);
+      ctx.fill();
+      HUD.text(ctx, label, r.x + r.w / 2, r.y + 28, {
+        font: 'bold 20px system-ui, sans-serif', align: 'center', color: COLORS.gold, outline: false,
+      });
+    }
+    HUD.text(ctx, TEAMS[Career.data.team].name, cx, a.left.y + 28, {
+      font: 'bold 22px system-ui, sans-serif', align: 'center', outline: false, maxWidth: 250,
+    });
+    HUD.text(ctx, '← → change team', cx, a.left.y + 52, {
+      font: '13px system-ui, sans-serif', align: 'center', color: '#999', outline: false,
+    });
   },
 
   drawStats(ctx) {
@@ -144,7 +178,7 @@ const Garage = {
     ];
     const x = 60, w = 420;
     rows.forEach(([label, value, key], i) => {
-      const y = 430 + i * 52;
+      const y = 450 + i * 50;
       HUD.text(ctx, label, x, y, { font: 'bold 16px system-ui, sans-serif', color: '#ddd', outline: false });
       if (value) HUD.text(ctx, value, x + w, y, {
         font: '15px system-ui, sans-serif', color: '#aaa', align: 'right', outline: false,
@@ -215,6 +249,124 @@ const Garage = {
     });
     HUD.text(ctx, diff + ' computer drivers · ' + game.track.laps + ' laps · change difficulty on the main menu', b.x + 24, b.y + 96, {
       font: '13px system-ui, sans-serif', color: '#888', outline: false,
+    });
+  },
+};
+
+// Two-player team picker, shown before a two-player race.
+// Player 1 uses A / D, Player 2 uses ← / →, Enter starts the race.
+const TeamSelect = {
+  teams: null,
+  karts: [null, null],
+
+  open() {
+    this.teams = Save.get('versus-teams', ['burhanuddin', 'mercedes']);
+    this.karts = [null, null];
+  },
+
+  update(game) {
+    const change = (p, dir) => {
+      this.teams[p] = nextTeam(this.teams[p], dir);
+      this.karts[p] = null;
+      Save.set('versus-teams', this.teams);
+    };
+    if (Input.pressed('KeyA')) change(0, -1);
+    if (Input.pressed('KeyD')) change(0, 1);
+    if (Input.pressed('ArrowLeft')) change(1, -1);
+    if (Input.pressed('ArrowRight')) change(1, 1);
+    // Mouse: click the arrows.
+    [0, 1].forEach((p) => {
+      const arrows = this.arrows(p);
+      if (Input.mouse.clicked && Input.mouseIn(arrows.left)) change(p, -1);
+      if (Input.mouse.clicked && Input.mouseIn(arrows.right)) change(p, 1);
+    });
+    const go = Input.pressed('Enter') || Input.pressed('NumpadEnter') || Input.pressed('Space')
+      || (Input.mouse.clicked && Input.mouseIn(this.goButton));
+    if (go) game.startVersusRace(this.teams);
+    if (Input.pressed('Escape')) game.showMenu();
+  },
+
+  centerX(p) {
+    return p === 0 ? GAME_WIDTH * 0.28 : GAME_WIDTH * 0.72;
+  },
+
+  arrows(p) {
+    const cx = this.centerX(p);
+    return {
+      left: { x: cx - 190, y: 440, w: 48, h: 44 },
+      right: { x: cx + 142, y: 440, w: 48, h: 44 },
+    };
+  },
+
+  goButton: { x: GAME_WIDTH / 2 - 150, y: 580, w: 300, h: 64 },
+
+  draw(ctx) {
+    const bg = ctx.createLinearGradient(0, 0, 0, GAME_HEIGHT);
+    bg.addColorStop(0, '#4a0d16');
+    bg.addColorStop(1, '#1a0508');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+    HUD.text(ctx, 'CHOOSE YOUR TEAMS', GAME_WIDTH / 2, 70, {
+      font: 'bold 40px system-ui, sans-serif', align: 'center', color: COLORS.gold, outline: false,
+    });
+
+    [0, 1].forEach((p) => {
+      const cx = this.centerX(p);
+      const team = TEAMS[this.teams[p]];
+      HUD.text(ctx, 'PLAYER ' + (p + 1), cx, 140, {
+        font: 'bold 24px system-ui, sans-serif', align: 'center', outline: false,
+      });
+      HUD.text(ctx, p === 0 ? 'A / D to change' : '← / → to change', cx, 166, {
+        font: '15px system-ui, sans-serif', align: 'center', color: '#aaa', outline: false,
+      });
+
+      // Turntable + kart.
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(cx, 300, 150, 95, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(212,160,23,0.5)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      if (!this.karts[p]) {
+        this.karts[p] = new Kart(Object.assign(playerSetup(p, this.teams[p]), { x: 0, y: 0, heading: -Math.PI / 2 }));
+      }
+      ctx.save();
+      ctx.translate(cx, 295);
+      ctx.scale(5, 5);
+      this.karts[p].heading = -Math.PI / 2 + Math.sin(performance.now() / 1400 + p * 1.5) * 0.35;
+      this.karts[p].draw(ctx);
+      ctx.restore();
+
+      const a = this.arrows(p);
+      for (const [r, label] of [[a.left, '◀'], [a.right, '▶']]) {
+        ctx.fillStyle = Input.mouseIn(r) ? 'rgba(212,160,23,0.3)' : 'rgba(255,255,255,0.08)';
+        ctx.beginPath();
+        ctx.roundRect(r.x, r.y, r.w, r.h, 8);
+        ctx.fill();
+        HUD.text(ctx, label, r.x + r.w / 2, r.y + 30, {
+          font: 'bold 22px system-ui, sans-serif', align: 'center', color: COLORS.gold, outline: false,
+        });
+      }
+      HUD.text(ctx, team.name, cx, a.left.y + 31, {
+        font: 'bold 26px system-ui, sans-serif', align: 'center', outline: false, maxWidth: 270,
+      });
+    });
+
+    const b = this.goButton;
+    ctx.fillStyle = Input.mouseIn(b) ? 'rgba(212,160,23,0.35)' : 'rgba(212,160,23,0.18)';
+    ctx.beginPath();
+    ctx.roundRect(b.x, b.y, b.w, b.h, 12);
+    ctx.fill();
+    ctx.strokeStyle = COLORS.gold;
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    HUD.text(ctx, 'RACE  ▶', b.x + b.w / 2, b.y + 42, {
+      font: 'bold 28px system-ui, sans-serif', align: 'center', color: COLORS.gold, outline: false,
+    });
+    HUD.text(ctx, 'Enter = race  ·  Esc = menu', GAME_WIDTH / 2, 700, {
+      font: '14px system-ui, sans-serif', align: 'center', color: '#999', outline: false,
     });
   },
 };

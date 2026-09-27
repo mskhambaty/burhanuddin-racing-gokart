@@ -323,7 +323,7 @@ function drawGrandstand(ctx, x, y, w, h, rand) {
       ctx.fillRect(fx, fy, 3, 3);
     }
   }
-  ctx.fillStyle = COLORS.black;
+  ctx.fillStyle = COLORS.red;
   ctx.fillRect(x, y, w, 10);
   ctx.fillStyle = COLORS.gold;
   ctx.font = 'bold 8px sans-serif';
