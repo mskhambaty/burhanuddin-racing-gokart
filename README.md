@@ -27,7 +27,7 @@ Switch **Controls** to *Keyboard* on the title screen (or press T there).
 
 ### Views
 
-Click the 👁 button (top right) or press **C** to switch between:
+Every race starts in the steering wheel view. Click the 👁 button (top right) or press **C** to switch between:
 
 | View | What you see |
 |---|---|

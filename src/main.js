@@ -77,6 +77,7 @@ const Game = {
     const players = [{ team: Career.data.team, stats: Career.kartStats() }];
     this.race = new Race(this.track, 1, this.difficulty, players, { ghostMode: this.mode === 'ghost' });
     this.race.controlMode = this.controls;
+    this.view = 'cockpit'; // every race starts in the steering wheel view (C switches)
     this.prize = null;
     this.camHeading = this.race.humans[0].kart.heading;
     this.clearSkids();

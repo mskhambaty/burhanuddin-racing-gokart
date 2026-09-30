@@ -2,7 +2,7 @@
 
 // Bump this (and the ?v= numbers in index.html) whenever you release a change.
 // It's shown on the title screen so you can tell which version you are playing.
-const GAME_VERSION = '6  ·  30 Sep 2026';
+const GAME_VERSION = '7  ·  30 Sep 2026';
 
 const GAME_WIDTH = 1280;
 const GAME_HEIGHT = 720;
