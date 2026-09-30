@@ -26,6 +26,7 @@ class Racer {
     this.finished = false;
     this.finishTime = null;
     this.position = 1;
+    this.cpTimes = [0];       // race clock when each checkpoint was passed (index = checkpoint number)
     this.wrongWayTime = 0;
     this.missedCheckpoint = false;
   }
@@ -46,26 +47,41 @@ class Racer {
 
 class Race {
   // players: for each human, { team, stats } (stats come from garage upgrades).
-  constructor(track, playerCount, difficulty, players = []) {
+  // options.ghostMode: YOU mode — no computer drivers, race your best time instead.
+  constructor(track, playerCount, difficulty, players = [], options = {}) {
     this.track = track;
     this.playerCount = playerCount;
+    this.ghostMode = !!options.ghostMode;
     this.racers = [];
 
     // Computer drivers start at the front, humans at the back: you have to
-    // fight your way through the pack!
-    const aiCount = KARTS_PER_RACE - playerCount;
-    let slot = 0;
+    // fight your way through the pack! (You always start from the back of the
+    // grid, so your ghost and you start from the same spot.)
+    const aiCount = this.ghostMode ? 0 : KARTS_PER_RACE - playerCount;
     for (let i = 0; i < aiCount; i++) {
       const profile = AI_DRIVERS[i];
-      const racer = this.addRacer(profile, slot++, false);
+      const racer = this.addRacer(profile, i, false);
       racer.ai = new AIDriver(racer, this, profile, difficulty);
     }
     for (let i = 0; i < playerCount; i++) {
       const p = players[i] || {};
       const setup = Object.assign(playerSetup(i, p.team), { stats: p.stats });
-      this.addRacer(setup, slot++, true);
+      this.addRacer(setup, KARTS_PER_RACE - playerCount + i, true);
     }
     this.humans = this.racers.filter((r) => r.isHuman);
+    this.playerTeam = (players[0] && players[0].team) || 'burhanuddin';
+
+    // Your ghost: the recording of your best race on this track.
+    this.bestGhost = Ghosts.load(track);     // the best race so far (before this one)
+    this.ghost = null;                       // the see-through kart (YOU mode only)
+    this.gap = null;                         // seconds ahead (-) or behind (+) the ghost, at the last checkpoint
+    this.recorder = new GhostRecorder();
+    this.ghostResult = null;                 // filled in when you finish
+    if (this.ghostMode && this.bestGhost) {
+      const first = Ghosts.sample(this.bestGhost, 0);
+      const kart = new Kart(Object.assign(playerSetup(0, this.bestGhost.team), { x: first.x, y: first.y, heading: first.heading }));
+      this.ghost = { data: this.bestGhost, kart };
+    }
     this.controlMode = 'keyboard';   // or 'trackpad' (set by the game)
     this.ignorePointerBrake = false; // true while a button is being clicked
     this.finishedAt = null;          // race clock when the results appeared
@@ -114,6 +130,8 @@ class Race {
       this.makeEffects(r.kart, dt);
     }
 
+    this.updateGhost();
+
     // Karts that have finished become "ghosts" so they don't get in the way.
     const onTrack = this.racers.filter((r) => !r.finished);
     for (let i = 0; i < onTrack.length; i++) {
@@ -150,6 +168,11 @@ class Race {
 
     if (sector === r.nextSector) {
       r.passed++;
+      r.cpTimes[r.passed] = this.time;
+      if (r.isHuman && this.ghost) {
+        const ghostTime = this.ghost.data.cp[r.passed];
+        if (ghostTime !== undefined) this.gap = this.time - ghostTime;
+      }
       if (sector === 0) {
         if (r.crossedStart) this.completeLap(r);
         else r.crossedStart = true; // first time over the line after GO
@@ -181,6 +204,35 @@ class Race {
       r.finished = true;
       r.finishTime = this.time;
       this.finishOrder.push(r);
+    }
+  }
+
+  // Moves the ghost along its recording, and records this race.
+  updateGhost() {
+    if (this.ghost) {
+      const p = Ghosts.sample(this.ghost.data, this.time);
+      const k = this.ghost.kart;
+      k.x = p.x; k.y = p.y; k.heading = p.heading; k.steerVisual = p.steer;
+      this.ghost.done = this.time >= this.ghost.data.total;
+    }
+    const me = this.humans[0];
+    if (!me || this.recorder.done) return;
+    if (!me.finished) {
+      this.recorder.update(this.time, me.kart);
+    } else {
+      // You've crossed the line: is this your best race on this track?
+      this.recorder.done = true;
+      const data = this.recorder.finish(this.track, me, this.playerTeam);
+      const before = this.bestGhost;
+      const isBest = !before || data.total < before.total;
+      this.ghostResult = {
+        hadGhost: !!before,
+        ghostTotal: before ? before.total : null,
+        playerTotal: data.total,
+        beatGhost: !!before && isBest,
+        newBest: isBest,
+      };
+      if (isBest) Ghosts.store(this.track, data);
     }
   }
 

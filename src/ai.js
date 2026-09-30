@@ -14,13 +14,22 @@ const AI_DRIVERS = [
   { name: 'Karim',   body: '#9acd32', trim: '#111111', helmet: '#111111', skill: 0.75 },
 ];
 
-// How fast the computer drivers are compared with a perfect lap.
+// How good the computer drivers are.
+//   topKmh    their top speed on the straights (what the speedometer shows)
+//   pace      how hard they push through corners (1 = the safe limit)
+//   mistakes  how often they make small steering mistakes
+// Your own kart starts at 90 km/h and reaches 104 km/h with a maxed engine,
+// so on Hard you need some upgrades to keep up on the straights!
 const DIFFICULTIES = {
-  easy:   { label: 'Easy',   pace: 0.84, mistakes: 0.30 },
-  medium: { label: 'Medium', pace: 0.95, mistakes: 0.15 },
-  hard:   { label: 'Hard',   pace: 1.06, mistakes: 0.05 },
+  easy:   { label: 'Easy',   topKmh: 60,  pace: 0.85, mistakes: 0.30 },
+  medium: { label: 'Medium', topKmh: 78,  pace: 0.95, mistakes: 0.15 },
+  hard:   { label: 'Hard',   topKmh: 100, pace: 1.06, mistakes: 0.05 },
 };
 const DIFFICULTY_ORDER = ['easy', 'medium', 'hard'];
+
+// The corner-speed table is worked out for a kart this fast (px/s); each
+// driver is then held to their own top speed (see AIDriver).
+const AI_SPEED_CEILING = 320;
 
 // Work out the racing line and the fastest safe speed at every point of a
 // track. Done once per track and remembered.
@@ -65,7 +74,7 @@ function prepareTrackForAI(track) {
     // The kart's turn rate drops a little with speed; solve for the speed
     // where the turn it can manage matches the corner (with a safety margin).
     const v = (s.steer * 0.8) / (k + (0.3 * s.steer) / s.topSpeed);
-    speed[i] = Math.min(s.topSpeed, v);
+    speed[i] = Math.min(AI_SPEED_CEILING, v);
   }
   // Brake early: you must be able to slow down in time for the next corner.
   const decel = s.brake * 0.6;
@@ -89,6 +98,10 @@ class AIDriver {
     const d = DIFFICULTIES[difficulty] || DIFFICULTIES.medium;
     // Better drivers are a little faster and make fewer mistakes.
     this.pace = d.pace * (0.94 + profile.skill * 0.06);
+    // Top speed in pixels per second (1 km/h = 1 / 0.36 px/s). Drivers vary by
+    // a few percent so they don't all run nose to tail.
+    this.topSpeed = (d.topKmh / 0.36) * (0.96 + 0.04 * profile.skill);
+    racer.kart.stats.topSpeed = this.topSpeed * 1.05; // so the kart can actually reach it
     this.mistakeRate = d.mistakes * (1.4 - profile.skill * 0.6);
     this.lane = 0;            // extra sideways offset used for overtaking
     this.laneTimer = 0;
@@ -143,7 +156,7 @@ class AIDriver {
     const steer = clamp(angle * 3.2 + this.wobble, -1, 1);
 
     // Speed: go as fast as the upcoming bit of track allows.
-    let wanted = this.ai.speed[(idx + 3) % n] * this.pace;
+    let wanted = Math.min(this.ai.speed[(idx + 3) % n] * this.pace, this.topSpeed);
     if (this.racer.finished) wanted = 60; // cool-down lap
     let throttle = 0, brake = 0;
     if (speed < wanted) throttle = 1;

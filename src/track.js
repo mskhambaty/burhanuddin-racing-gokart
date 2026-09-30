@@ -9,6 +9,86 @@
 
 const TRACKS = {};
 
+// The order tracks appear in the garage.
+const TRACK_ORDER = ['giza', 'cairo', 'nile'];
+
+// Design a track from its corners. Give the corners in driving order, each
+// as [x, y, radius]; the road is drawn straight between them and rounded off
+// with a curve of the given radius at each corner (radius 0 = just a point
+// on a straight). The first point is the start/finish line.
+//
+//   roundedLoop([[900, 590, 0], [150, 590, 120], [150, 130, 120], ...])
+function roundedLoop(corners) {
+  const n = corners.length;
+  const P = corners.map((c) => ({ x: c[0], y: c[1] }));
+  const arcs = corners.map((c, i) => {
+    let r = c[2] || 0;
+    if (r <= 0) return { s: P[i], e: P[i], pts: [P[i]] };
+    const prev = P[(i - 1 + n) % n], next = P[(i + 1) % n], cur = P[i];
+    const l1 = Math.hypot(cur.x - prev.x, cur.y - prev.y), l2 = Math.hypot(next.x - cur.x, next.y - cur.y);
+    const d1 = { x: (cur.x - prev.x) / l1, y: (cur.y - prev.y) / l1 };
+    const d2 = { x: (next.x - cur.x) / l2, y: (next.y - cur.y) / l2 };
+    const cross = d1.x * d2.y - d1.y * d2.x;
+    const turn = Math.atan2(cross, d1.x * d2.x + d1.y * d2.y); // signed turning angle
+    if (Math.abs(turn) < 0.01) return { s: cur, e: cur, pts: [cur] };
+    // The curve may not use more than half of either neighbouring straight.
+    const room = Math.min(l1, l2) / 2 - 1;
+    r = Math.min(r, room / Math.tan(Math.abs(turn) / 2));
+    const t = r * Math.tan(Math.abs(turn) / 2);
+    const s = { x: cur.x - d1.x * t, y: cur.y - d1.y * t };
+    const side = Math.sign(cross); // +1 = turning right on screen
+    const centre = { x: s.x - d1.y * side * r, y: s.y + d1.x * side * r };
+    const a0 = Math.atan2(s.y - centre.y, s.x - centre.x);
+    const steps = Math.max(2, Math.ceil((Math.abs(turn) * r) / 22));
+    const pts = [];
+    for (let k = 0; k <= steps; k++) {
+      const a = a0 + (turn * k) / steps;
+      pts.push({ x: centre.x + Math.cos(a) * r, y: centre.y + Math.sin(a) * r });
+    }
+    return { s: pts[0], e: pts[pts.length - 1], pts };
+  });
+  const out = [];
+  for (let i = 0; i < n; i++) {
+    for (const p of arcs[i].pts) out.push([p.x, p.y]);
+    // Straight bit to the next corner, with a point every ~30 pixels.
+    const from = arcs[i].e, to = arcs[(i + 1) % n].s;
+    const len = Math.hypot(to.x - from.x, to.y - from.y);
+    const k = Math.floor(len / 30);
+    for (let j = 1; j < k; j++) out.push([from.x + ((to.x - from.x) * j) / k, from.y + ((to.y - from.y) * j) / k]);
+  }
+  return out;
+}
+
+// Is this rectangle (x, y, w, h) clear of the road and its run-off?
+function rectIsClear(track, x, y, w, h, margin = 0) {
+  const xs = [x - margin, x + w / 2, x + w + margin], ys = [y - margin, y + h / 2, y + h + margin];
+  for (const px of xs) for (const py of ys) if (!track.isClear(px, py, 0)) return false;
+  return true;
+}
+
+// Fill free space with city buildings. `areas` limits where (optional).
+function scatterBuildings(track, rand, opts) {
+  const items = [];
+  const colors = opts.colors;
+  for (let i = 0; i < opts.tries; i++) {
+    const w = opts.minSize + rand() * (opts.maxSize - opts.minSize);
+    const h = opts.minSize + rand() * (opts.maxSize - opts.minSize);
+    const x = Math.round(6 + rand() * (GAME_WIDTH - w - 12)), y = Math.round(6 + rand() * (GAME_HEIGHT - h - 12));
+    if (opts.allowed && !opts.allowed(x, y, w, h)) continue;
+    if (!rectIsClear(track, x, y, w, h, 4)) continue;
+    const gap = 8;
+    const clash = (opts.existing || []).concat(items).some((o) =>
+      o.w !== undefined && x < o.x + o.w + gap && x + w + gap > o.x && y < o.y + o.h + gap && y + h + gap > o.y);
+    if (clash) continue;
+    items.push({
+      type: 'building', x, y, w: Math.round(w), h: Math.round(h),
+      height: Math.round(opts.minHeight + rand() * (opts.maxHeight - opts.minHeight)),
+      color: colors[Math.floor(rand() * colors.length)],
+    });
+  }
+  return items;
+}
+
 class Track {
   constructor(def) {
     this.id = def.id;
@@ -24,7 +104,13 @@ class Track {
       runoff: '#e6cf9c',
       road: '#4a4a4c',
       tyres: '#2b2b2b',
+      wallStripe: '#c0392b',
+      speckleDark: 'rgba(120,90,40,0.10)',
+      speckleLight: 'rgba(255,245,210,0.18)',
     }, def.colors || {});
+    // Optional: paint extra things on the ground (a river, plazas...) before
+    // the road is drawn on top. Called as paintGround(ctx, track, rand).
+    this.paintGround = def.paintGround || null;
     this.buildScenery = def.buildScenery || null;
     this.scenery = null;      // pyramids, palms, grandstand (see getScenery)
     this.seed = def.seed || 1;
@@ -163,6 +249,9 @@ class Track {
       if (item.type === 'pyramid') drawPyramid(ctx, item.x, item.y, item.size);
       else if (item.type === 'palm') drawPalm(ctx, item.x, item.y, item.size, item.rot);
       else if (item.type === 'stand') drawGrandstand(ctx, item.x, item.y, item.w, item.h, rand);
+      else if (item.type === 'building') drawBuilding(ctx, item);
+      else if (item.type === 'tower') drawTower(ctx, item);
+      else if (item.type === 'felucca') drawFelucca(ctx, item);
     }
     this.canvas = c;
     return c;
@@ -183,12 +272,14 @@ class Track {
     ctx.fillStyle = this.colors.desert;
     ctx.fillRect(0, 0, c.width, c.height);
     for (let i = 0; i < 2500; i++) {
-      ctx.fillStyle = rand() < 0.5 ? 'rgba(120,90,40,0.10)' : 'rgba(255,245,210,0.18)';
+      ctx.fillStyle = rand() < 0.5 ? this.colors.speckleDark : this.colors.speckleLight;
       const r = 1 + rand() * 2.5;
       ctx.beginPath();
       ctx.arc(rand() * c.width, rand() * c.height, r, 0, Math.PI * 2);
       ctx.fill();
     }
+
+    if (this.paintGround) this.paintGround(ctx, this, rand);
 
     const path = new Path2D();
     this.points.forEach((p, i) => (i === 0 ? path.moveTo(p.x, p.y) : path.lineTo(p.x, p.y)));
@@ -201,7 +292,7 @@ class Track {
     ctx.strokeStyle = this.colors.tyres;
     ctx.lineWidth = this.wallDist * 2 + 10;
     ctx.stroke(path);
-    ctx.strokeStyle = '#c0392b';
+    ctx.strokeStyle = this.colors.wallStripe;
     ctx.lineCap = 'butt'; // round caps would fill in the gaps between dashes
     ctx.setLineDash([10, 10]);
     ctx.lineWidth = this.wallDist * 2 + 4;
@@ -299,7 +390,92 @@ function drawShadow(ctx, item) {
     ctx.fill();
   } else if (item.type === 'stand') {
     ctx.fillRect(item.x + 6, item.y + 6, item.w, item.h);
+  } else if (item.type === 'building') {
+    // The shadow grows with the building's height.
+    const o = Math.min(item.height * 0.35, 40);
+    ctx.beginPath();
+    ctx.moveTo(item.x, item.y);
+    ctx.lineTo(item.x + o, item.y + o);
+    ctx.lineTo(item.x + item.w + o, item.y + o);
+    ctx.lineTo(item.x + item.w + o, item.y + item.h + o);
+    ctx.lineTo(item.x + item.w, item.y + item.h);
+    ctx.lineTo(item.x, item.y + item.h);
+    ctx.closePath();
+    ctx.fill();
+  } else if (item.type === 'tower') {
+    ctx.beginPath();
+    ctx.ellipse(item.x + 28, item.y + 28, item.r * 0.9, item.r * 0.5, 0.78, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (item.type === 'felucca') {
+    ctx.beginPath();
+    ctx.ellipse(item.x + 4, item.y + 5, 20, 5, item.rot, 0, Math.PI * 2);
+    ctx.fill();
   }
+}
+
+// A flat-roofed city building seen from above.
+function drawBuilding(ctx, b) {
+  ctx.fillStyle = b.color;
+  ctx.fillRect(b.x, b.y, b.w, b.h);
+  ctx.fillStyle = 'rgba(255,255,255,0.14)';
+  ctx.fillRect(b.x + 3, b.y + 3, b.w - 6, b.h - 6);
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(b.x + 0.5, b.y + 0.5, b.w - 1, b.h - 1);
+  // A rooftop water tank and air-conditioning boxes.
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.fillRect(b.x + b.w * 0.2, b.y + b.h * 0.25, Math.min(10, b.w * 0.25), Math.min(8, b.h * 0.25));
+  ctx.fillStyle = 'rgba(255,255,255,0.35)';
+  ctx.beginPath();
+  ctx.arc(b.x + b.w * 0.68, b.y + b.h * 0.62, Math.min(5, b.w * 0.12), 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// Cairo Tower from above: a round base with the lattice "lotus" head.
+function drawTower(ctx, t) {
+  ctx.fillStyle = '#bdb6a8';
+  ctx.beginPath();
+  ctx.arc(t.x, t.y, t.r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#8f887c';
+  ctx.beginPath();
+  ctx.arc(t.x, t.y, t.r * 0.62, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = '#6d675e';
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 8; i++) {
+    const a = (i / 8) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.moveTo(t.x, t.y);
+    ctx.lineTo(t.x + Math.cos(a) * t.r, t.y + Math.sin(a) * t.r);
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#d8d1c3';
+  ctx.beginPath();
+  ctx.arc(t.x, t.y, t.r * 0.25, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+// A felucca (traditional Nile sailboat) from above.
+function drawFelucca(ctx, f) {
+  ctx.save();
+  ctx.translate(f.x, f.y);
+  ctx.rotate(f.rot);
+  ctx.fillStyle = '#7a4b25';
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 20, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#f6f1e4';
+  ctx.beginPath();
+  ctx.moveTo(-14, 0);
+  ctx.lineTo(16, -9);
+  ctx.lineTo(16, 9);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawPyramid(ctx, x, y, size) {

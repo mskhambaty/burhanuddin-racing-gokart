@@ -49,11 +49,13 @@ and you unlock new tracks, from the Giza Pyramids to the streets of Downtown.
 Each track is just a list of points (the centre line) plus a width, so new tracks
 can be designed by editing numbers — a great thing for your nephew to try himself.
 
-| # | Track | Idea | Unlock |
-|---|---|---|---|
-| 1 | **Giza Pyramids Circuit** | Wide, sandy, flowing. The three pyramids in the infield, palm trees, grandstand. | Start |
-| 2 | **Nile Corniche Sprint** | Long fast straights along the river with a few heavy braking zones, feluccas on the water. | 2 wins |
-| 3 | **Mohandessin Street Circuit** | Tight 90° corners around city blocks, like the streets off Gameat El Dewal. Hardest to drive. | 5 wins |
+| # | Track | Idea |
+|---|---|---|
+| 1 | **Giza Pyramids Circuit** | Wide, sandy, flowing. The three pyramids in the infield, palm trees, grandstand. |
+| 2 | **Cairo City Circuit** | Tight downtown streets between buildings: 90° corners, two zig-zags and a square notch. |
+| 3 | **Nile Corniche** | Fast straights and big sweepers around the river, with Zamalek island, the Cairo Tower and feluccas. |
+
+All three are available from the start and picked in the garage (unlocking by wins is still an idea for later).
 
 Later: Khan el-Khalili, Zamalek & Cairo Tower, Downtown night race, and other Middle East
 cities (Dubai Marina, Riyadh, Amman/Petra desert, Alexandria seaside).
@@ -109,7 +111,7 @@ Each phase ends with something playable. We only move on when the current phase 
 
 ### Phase 2 — Race against the computer ✅ done
 - 5 AI karts that follow a racing line, brake for corners, overtake and make small mistakes.
-- Easy / Medium / Hard difficulty.
+- Easy / Medium / Hard difficulty: the computer drivers' top speed is about 60 / 78 / 100 km/h.
 - Start grid, 3-2-1-GO countdown, live position (1st/6th), finish screen.
 - Kart-to-kart bumping.
 
@@ -121,7 +123,7 @@ Each phase ends with something playable. We only move on when the current phase 
 
 ### Phase 4 — Team and career
 - Driver Market: hire / fire drivers, teammates race with you, salaries.
-- Track unlocks (Nile Corniche, Khan el-Khalili, …) and a trophy count.
+- More tracks (Khan el-Khalili, Downtown night race, …), optional track unlocks, and a trophy count.
 - A simple 3-race "Cairo Cup" championship with points.
 
 ### Phase 5 — Polish
@@ -148,7 +150,8 @@ burhanuddin-racing-gokart/
 │   ├── input.js        # keyboard controls
 │   ├── kart.js         # kart movement / physics
 │   ├── track.js        # drawing tracks, checkpoints, on/off-road
-│   ├── tracks/         # one file per track (giza.js, corniche.js, ...)
+│   ├── tracks/         # one file per track (giza.js, cairo.js, nile.js)
+│   ├── ghost.js        # records races, replays your best as the ghost
 │   ├── ai.js           # computer drivers
 │   ├── race.js         # laps, positions, countdown, results
 │   ├── hud.js          # lap panels, countdown, menus, minimap
@@ -175,8 +178,11 @@ burhanuddin-racing-gokart/
 2. **Realistic karting** — no power-ups.
 3. **One player only** (two-player mode was tried and removed). Drive with the **trackpad** (default) or keyboard.
 4. Team: **Burhanuddin Racing**, **red & gold**.
-5. Tracks: **Pyramids, Nile, Mohandessin**.
+5. Tracks: **Giza Pyramids, Cairo City, Nile Corniche** (picked in the garage).
 6. The player picks a team: **Burhanuddin Racing** (red & gold), **Mercedes**, **BMW**,
    **Ferrari**, **Red Bull** or **McLaren** — colours and names only, no logos.
    Picked in the garage.
 7. **Three views:** steering wheel (main), rear, top down.
+8. **YOU mode:** race a see-through ghost of your own best race on the track (exact replay).
+   Set by any finished race; per track; no prizes.
+9. Computer-driver top speeds: **Easy ≈ 60, Medium ≈ 78, Hard ≈ 100 km/h.**

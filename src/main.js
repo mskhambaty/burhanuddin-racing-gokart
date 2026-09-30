@@ -15,7 +15,8 @@ const VIEW_LABELS = { cockpit: 'Steering wheel', chase: 'Rear', top: 'Top down' 
 
 const Game = {
   screen: 'menu', // menu | garage | race | paused
-  track: TRACKS.giza,
+  track: TRACKS[Save.get('track', 'giza')] || TRACKS.giza,
+  mode: Save.get('mode', 'race'), // race (vs the computer) | ghost (YOU mode: vs your best time)
   race: null,
   prize: null,    // prize money won in the last race
   difficulty: Save.get('difficulty', 'easy'),
@@ -69,12 +70,12 @@ const Game = {
 
   showGarage() {
     this.screen = 'garage';
-    Garage.selected = 4;
+    Garage.selected = 6;
   },
 
   startRace() {
     const players = [{ team: Career.data.team, stats: Career.kartStats() }];
-    this.race = new Race(this.track, 1, this.difficulty, players);
+    this.race = new Race(this.track, 1, this.difficulty, players, { ghostMode: this.mode === 'ghost' });
     this.race.controlMode = this.controls;
     this.prize = null;
     this.camHeading = this.race.humans[0].kart.heading;
@@ -82,10 +83,23 @@ const Game = {
     this.screen = 'race';
   },
 
-  // After a race, add the prize money once.
+  // After a race, add the prize money once (there are no prizes in YOU mode).
   payPrizeMoney() {
-    if (this.screen !== 'race' || this.race.state !== 'finished' || this.prize != null) return;
+    if (this.screen !== 'race' || this.race.ghostMode) return;
+    if (this.race.state !== 'finished' || this.prize != null) return;
     this.prize = Career.recordRace(this.race.humans[0].position, this.difficulty);
+  },
+
+  // Pick the track (dir = 1 next, -1 previous).
+  changeTrack(dir) {
+    const i = TRACK_ORDER.indexOf(this.track.id);
+    this.track = TRACKS[TRACK_ORDER[(i + dir + TRACK_ORDER.length) % TRACK_ORDER.length]];
+    Save.set('track', this.track.id);
+  },
+
+  changeMode() {
+    this.mode = this.mode === 'race' ? 'ghost' : 'race';
+    Save.set('mode', this.mode);
   },
 
   cycleView() {
@@ -193,7 +207,10 @@ const Game = {
     }
 
     HUD.raceHud(ctx, this, race, me);
-    if (race.state === 'finished') HUD.results(ctx, race, this.prize);
+    if (race.state === 'finished') {
+      if (race.ghostMode) HUD.resultsGhost(ctx, race);
+      else HUD.results(ctx, race, this.prize);
+    }
     else if (this.screen === 'paused') HUD.paused(ctx);
   },
 
@@ -218,6 +235,13 @@ const Game = {
       r.kart.draw(ctx);
     }
     ctx.globalAlpha = 1;
+    if (race.ghost && this.screen !== 'menu') {
+      const k = race.ghost.kart;
+      ctx.globalAlpha = 0.5;
+      k.draw(ctx);
+      ctx.globalAlpha = 1;
+      HUD.text(ctx, 'GHOST', k.x, k.y - 20, { font: 'bold 11px system-ui, sans-serif', align: 'center', color: '#e8e8ff', outlineWidth: 3 });
+    }
     for (const d of race.dust) {
       const a = d.life / d.max;
       ctx.fillStyle = 'rgba(230,205,150,' + (0.6 * a).toFixed(3) + ')';

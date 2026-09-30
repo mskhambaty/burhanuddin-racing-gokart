@@ -38,9 +38,11 @@ const HUD = {
     ctx.fillStyle = k.trim;
     ctx.fillRect(x + 12, y + 17.5, 14, 3);
     this.text(ctx, racer.name, x + 34, y + 25, { font: 'bold 13px system-ui, sans-serif', outline: false, maxWidth: w - 116 });
-    this.text(ctx, ordinal(racer.position) + '/' + race.racers.length, x + w - 12, y + 26, {
-      font: 'bold 20px system-ui, sans-serif', align: 'right', color: COLORS.goldLight, outline: false,
-    });
+    if (!race.ghostMode) {
+      this.text(ctx, ordinal(racer.position) + '/' + race.racers.length, x + w - 12, y + 26, {
+        font: 'bold 20px system-ui, sans-serif', align: 'right', color: COLORS.goldLight, outline: false,
+      });
+    }
 
     const lap = Math.min(racer.lapsDone + 1, race.track.laps);
     const current = racer.finished ? racer.finishTime : race.time - racer.lapStart;
@@ -183,6 +185,12 @@ const HUD = {
       ctx.arc(x + r.kart.x * sx, y + r.kart.y * sy, 4, 0, Math.PI * 2);
       ctx.fill();
     }
+    if (race.ghost) {
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.beginPath();
+      ctx.arc(x + race.ghost.kart.x * sx, y + race.ghost.kart.y * sy, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
     // You: an arrow pointing the way you're driving.
     const k = me.kart;
     ctx.save();
@@ -220,7 +228,8 @@ const HUD = {
   // Everything drawn over the race.
   raceHud(ctx, game, race, me) {
     this.warnings(ctx, me, game.view);
-    this.leaderboard(ctx, race);
+    if (race.ghostMode) this.ghostBar(ctx, race);
+    else this.leaderboard(ctx, race);
     this.racerPanel(ctx, race, me, 12, 12);
     if (game.view !== 'top') this.minimap(ctx, race, me);
     if (game.view !== 'cockpit' && game.controls === 'trackpad') this.steerMeter(ctx, me.kart);
@@ -241,6 +250,92 @@ const HUD = {
     });
     this.text(ctx, 'Click or press P to keep racing  ·  Esc = back to the garage', GAME_WIDTH / 2, GAME_HEIGHT / 2 + 40, {
       font: '18px system-ui, sans-serif', align: 'center',
+    });
+  },
+
+  // YOU mode: how far ahead or behind your ghost you are (updated at every checkpoint).
+  ghostBar(ctx, race) {
+    const w = 440, h = 50, x = GAME_WIDTH / 2 - w / 2, y = 6;
+    ctx.fillStyle = 'rgba(58,10,16,0.82)';
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 10);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    this.text(ctx, '👻 GHOST', x + 16, y + 31, { font: 'bold 17px system-ui, sans-serif', color: '#e8e8ff', outline: false });
+    if (!race.ghost) {
+      this.text(ctx, 'No ghost yet — this run will become your ghost!', x + w - 14, y + 31, {
+        font: '14px system-ui, sans-serif', align: 'right', color: COLORS.goldLight, outline: false, maxWidth: 290,
+      });
+      return;
+    }
+    this.text(ctx, 'best ' + formatTime(race.ghost.data.total), x + 112, y + 31, {
+      font: '14px ui-monospace, Menlo, Consolas, monospace', color: '#aaa', outline: false,
+    });
+    let label = '—', color = '#bbb';
+    if (race.gap != null) {
+      const ahead = race.gap <= 0;
+      label = (ahead ? '−' : '+') + Math.abs(race.gap).toFixed(2) + ' s';
+      color = ahead ? '#5dff7a' : '#ff7a6a';
+    }
+    this.text(ctx, label, x + w - 16, y + 34, {
+      font: 'bold 26px ui-monospace, Menlo, Consolas, monospace', align: 'right', color, outline: false,
+    });
+  },
+
+  // YOU mode results: you against your ghost.
+  resultsGhost(ctx, race) {
+    const g = race.ghostResult, me = race.humans[0];
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    const cx = GAME_WIDTH / 2, w = 640, h = 380, top = GAME_HEIGHT / 2 - h / 2;
+    this.panel(ctx, cx - w / 2, top, w, h);
+
+    let heading = 'FIRST TIME SET!', color = COLORS.gold;
+    if (g && g.hadGhost) {
+      heading = g.beatGhost ? 'YOU BEAT YOUR GHOST!' : 'YOUR GHOST WINS';
+      color = g.beatGhost ? '#5dff7a' : '#ff8a7a';
+    }
+    this.text(ctx, '🏁 ' + heading, cx, top + 56, {
+      font: 'bold 38px system-ui, sans-serif', align: 'center', color, outlineWidth: 6, maxWidth: 600,
+    });
+    if (g && g.hadGhost) {
+      const diff = Math.abs(g.playerTotal - g.ghostTotal).toFixed(2);
+      this.text(ctx, g.beatGhost ? 'You were ' + diff + ' s faster than your best' : 'You were ' + diff + ' s slower than your best', cx, top + 90, {
+        font: '18px system-ui, sans-serif', align: 'center', color: '#ddd', outline: false,
+      });
+    } else {
+      this.text(ctx, 'This run is now your ghost. Beat it next time!', cx, top + 90, {
+        font: '18px system-ui, sans-serif', align: 'center', color: '#ddd', outline: false,
+      });
+    }
+
+    const mono = 'ui-monospace, Menlo, Consolas, monospace';
+    const row = (y, name, swatch, time, sub, hi) => {
+      if (hi) {
+        ctx.fillStyle = 'rgba(212,160,23,0.18)';
+        ctx.fillRect(cx - w / 2 + 16, y - 26, w - 32, 62);
+      }
+      ctx.fillStyle = swatch;
+      ctx.fillRect(cx - 280, y - 14, 8, 22);
+      this.text(ctx, name, cx - 260, y + 2, { font: 'bold 22px system-ui, sans-serif', outline: false });
+      this.text(ctx, time, cx + 280, y + 2, { font: 'bold 24px ' + mono, align: 'right', color: COLORS.goldLight, outline: false });
+      this.text(ctx, sub, cx - 260, y + 26, { font: '13px ' + mono, color: '#aaa', outline: false });
+    };
+    row(top + 150, 'YOU', me.kart.body, formatTime(me.finishTime),
+      'Laps: ' + me.lapTimes.map(formatTime).join('  ·  '), !(g && g.hadGhost && !g.beatGhost));
+    if (g && g.hadGhost) {
+      row(top + 230, 'GHOST (your best)', race.ghost ? race.ghost.kart.body : '#ccc', formatTime(g.ghostTotal),
+        'The best race you had before this one', g.hadGhost && !g.beatGhost);
+    }
+    if (g && g.newBest) {
+      this.text(ctx, '★ NEW BEST — your ghost has been updated ★', cx, top + h - 62, {
+        font: 'bold 18px system-ui, sans-serif', align: 'center', color: '#5dff7a', outline: false,
+      });
+    }
+    this.text(ctx, 'Click or press Enter to go back to the garage', cx, top + h - 26, {
+      font: '17px system-ui, sans-serif', align: 'center', color: '#ddd', outline: false,
     });
   },
 

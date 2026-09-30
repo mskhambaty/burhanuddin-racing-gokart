@@ -20,9 +20,12 @@ const FOG = { start: 320, end: 1050, rgb: [228, 216, 192] }; // hazy desert air
 const NEAR = 3;     // don't draw things closer than this
 const FAR = 1400;   // or further than this
 
-// Colour of the desert beyond the edge of the map (little-endian ABGR).
-const DESERT_PX = 0xff74b7d8;
-const DESERT_PX_DARK = 0xff68a8c8;
+// '#rrggbb' -> the colour as a packed pixel (little-endian ABGR), darkened by k.
+function hexToPixel(hex, k = 1) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.round(((n >> 16) & 255) * k), g = Math.round(((n >> 8) & 255) * k), b = Math.round((n & 255) * k);
+  return (0xff000000 | (b << 16) | (g << 8) | r) >>> 0;
+}
 
 // ---------- The ground ----------
 
@@ -34,6 +37,10 @@ class Ground {
     const data = tex.getContext('2d').getImageData(0, 0, this.tw, this.th);
     this.tex = new Uint32Array(data.data.buffer);
     this.buf = null;
+    // What the ground looks like beyond the edge of the map: plain ground
+    // in the track's colour, with a few darker patches so you can feel the speed.
+    this.outPx = hexToPixel(track.colors.desert);
+    this.outPxDark = hexToPixel(track.colors.desert, 0.93);
   }
 
   // Draw the ground for a camera into a small off-screen picture (w x h),
@@ -54,7 +61,7 @@ class Ground {
     const fx = Math.cos(cam.heading), fy = Math.sin(cam.heading);
     const rx = -fy, ry = fx;
     const [fr, fg, fb] = FOG.rgb;
-    const { tw, th, tex } = this;
+    const { tw, th, tex, outPx, outPxDark } = this;
 
     for (let y = Math.max(0, Math.ceil(hy)); y < h; y++) {
       const d = cam.height * f / (y + 0.5 - hy);   // distance to this row
@@ -72,7 +79,7 @@ class Ground {
           c = tex[(wy | 0) * tw + (wx | 0)];
         } else {
           // Beyond the map: plain desert with a few speckles so you can feel the speed.
-          c = (((wx >> 3) * 73856093) ^ ((wy >> 3) * 19349663)) & 7 ? DESERT_PX : DESERT_PX_DARK;
+          c = (((wx >> 3) * 73856093) ^ ((wy >> 3) * 19349663)) & 7 ? outPx : outPxDark;
         }
         const r = c & 255, g = (c >> 8) & 255, b = (c >> 16) & 255;
         out[o++] = 0xff000000 | (((b * ia + fogB) >> 8) << 16) | (((g * ia + fogG) >> 8) << 8) | ((r * ia + fogR) >> 8);
@@ -231,6 +238,12 @@ class Scene {
     this.sin = Math.sin(cam.heading);
     this.halfWidthRatio = vp.w / 2 / this.f; // tan of half the sideways view angle
     this.items = [];
+    this.alpha = 1;  // set below 1 to draw see-through things (the ghost)
+  }
+
+  add(item) {
+    item.alpha = this.alpha;
+    this.items.push(item);
   }
 
   depth(wx, wy) {
@@ -253,7 +266,7 @@ class Scene {
   }
 
   // A flat face given by 3D corner points, with an outward direction (normal).
-  face(pts, normal, color) {
+  face(pts, normal, color, bias = 0) {
     const c = this.cam;
     let cx = 0, cy = 0, cz = 0;
     for (const p of pts) { cx += p[0]; cy += p[1]; cz += p[2]; }
@@ -267,8 +280,8 @@ class Scene {
       scr.push(s);
     }
     const fill = shade(color, lightFor(normal[0], normal[1], normal[2]));
-    this.items.push({
-      depth: this.depth(cx, cy),
+    this.add({
+      depth: this.depth(cx, cy) - bias,
       draw(ctx) {
         ctx.fillStyle = fill;
         ctx.beginPath();
@@ -293,10 +306,21 @@ class Scene {
     const a = P(x0, y0, 0), b = P(x1, y0, 0), cc = P(x1, y1, 0), d = P(x0, y1, 0);
     const at = (p, z) => [p[0], p[1], z];
     this.face([at(a, z1), at(b, z1), at(cc, z1), at(d, z1)], [0, 0, 1], color);      // top
-    this.face([at(b, z0), at(cc, z0), at(cc, z1), at(b, z1)], [fx, fy, 0], color);   // front
-    this.face([at(a, z0), at(d, z0), at(d, z1), at(a, z1)], [-fx, -fy, 0], color);   // back
-    this.face([at(d, z0), at(cc, z0), at(cc, z1), at(d, z1)], [rx, ry, 0], color);   // right
-    this.face([at(a, z0), at(b, z0), at(b, z1), at(a, z1)], [-rx, -ry, 0], color);   // left
+    this.wall(b, cc, z0, z1, [fx, fy, 0], color);    // front
+    this.wall(a, d, z0, z1, [-fx, -fy, 0], color);   // back
+    this.wall(d, cc, z0, z1, [rx, ry, 0], color);    // right
+    this.wall(a, b, z0, z1, [-rx, -ry, 0], color);   // left
+  }
+
+  // A tall flat wall from base point p to base point q. Long walls are cut
+  // into pieces so they sort properly against things standing in front of them.
+  wall(p, q, z0, z1, normal, color, bias = 0) {
+    const n = Math.max(1, Math.ceil(Math.hypot(q[0] - p[0], q[1] - p[1]) / 60));
+    for (let i = 0; i < n; i++) {
+      const ax = p[0] + ((q[0] - p[0]) * i) / n, ay = p[1] + ((q[1] - p[1]) * i) / n;
+      const bx = p[0] + ((q[0] - p[0]) * (i + 1)) / n, by = p[1] + ((q[1] - p[1]) * (i + 1)) / n;
+      this.face([[ax, ay, z0], [bx, by, z0], [bx, by, z1], [ax, ay, z1]], normal, color, bias);
+    }
   }
 
   kart(k) {
@@ -326,7 +350,7 @@ class Scene {
     if (s.z > NEAR) {
       const r = (2.5 * this.f) / s.z;
       const color = k.helmet;
-      this.items.push({
+      this.add({
         depth: this.depth(hx, hy) - 0.5,
         draw(ctx) {
           ctx.fillStyle = color;
@@ -362,7 +386,7 @@ class Scene {
     const top = this.project(x + size * 0.3, y, height);
     if (base.z < NEAR || top.z < NEAR) return;
     const f = this.f;
-    this.items.push({
+    this.add({
       depth: this.depth(x, y),
       draw(ctx) {
         ctx.strokeStyle = '#7a5530';
@@ -393,9 +417,58 @@ class Scene {
     this.box(cx, cy, 0, -item.w / 2, item.w / 2, item.h / 2 - 1, item.h / 2 + 1, 18, 26, COLORS.red); // banner
   }
 
+  // A city building: a tall box with rows of dark windows.
+  building(b) {
+    const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+    if (!this.visible(cx, cy, Math.hypot(b.w, b.h) / 2)) return;
+    this.box(cx, cy, 0, -b.w / 2, b.w / 2, -b.h / 2, b.h / 2, 0, b.height, b.color);
+    if (this.depth(cx, cy) > 450) return; // too far away to see windows
+    const sides = [
+      [[b.x, b.y + b.h], [b.x + b.w, b.y + b.h], [0, 1]],     // south
+      [[b.x, b.y], [b.x + b.w, b.y], [0, -1]],                // north
+      [[b.x + b.w, b.y], [b.x + b.w, b.y + b.h], [1, 0]],     // east
+      [[b.x, b.y], [b.x, b.y + b.h], [-1, 0]],                // west
+    ];
+    for (const [p, q, nrm] of sides) {
+      // Skip walls we can't see, then push the windows out a hair so they sit on the wall.
+      const mx = (p[0] + q[0]) / 2, my = (p[1] + q[1]) / 2;
+      if (nrm[0] * (this.cam.x - mx) + nrm[1] * (this.cam.y - my) <= 0) continue;
+      const o = 0.4;
+      const pp = [p[0] + nrm[0] * o, p[1] + nrm[1] * o], qq = [q[0] + nrm[0] * o, q[1] + nrm[1] * o];
+      for (let z = 7; z + 6 < b.height; z += 12) {
+        this.wall(pp, qq, z, z + 6, [nrm[0], nrm[1], 0], '#34404f', 1);
+      }
+    }
+  }
+
+  // Cairo Tower: a tall shaft with the lattice "lotus" head.
+  tower(t) {
+    if (!this.visible(t.x, t.y, 30)) return;
+    this.box(t.x, t.y, 0, -5, 5, -5, 5, 0, 118, '#c4bcae');
+    this.box(t.x, t.y, 0, -13, 13, -13, 13, 118, 142, '#a39b8c');
+    this.box(t.x, t.y, 0, -8, 8, -8, 8, 142, 150, '#d8d1c3');
+    this.box(t.x, t.y, 0, -2, 2, -2, 2, 150, 176, '#c4bcae');
+  }
+
+  // A felucca: brown hull and a white triangular sail (seen from both sides).
+  felucca(f) {
+    if (!this.visible(f.x, f.y, 30)) return;
+    this.box(f.x, f.y, f.rot, -19, 19, -4, 4, 0, 4, '#7a4b25');
+    this.box(f.x, f.y, f.rot, 12, 20, -2.5, 2.5, 0, 7, '#6a3f1f'); // raised bow
+    const fx = Math.cos(f.rot), fy = Math.sin(f.rot), rx = -fy, ry = fx;
+    const P = (lx, z) => [f.x + fx * lx, f.y + fy * lx, z];
+    const sail = [P(-16, 4), P(17, 4), P(9, 46)];
+    this.face(sail, [rx, ry, 0], '#f6f1e4');
+    this.face(sail, [-rx, -ry, 0], '#f6f1e4');
+  }
+
   draw(ctx) {
     this.items.sort((a, b) => b.depth - a.depth);
-    for (const it of this.items) it.draw(ctx);
+    for (const it of this.items) {
+      ctx.globalAlpha = it.alpha;
+      it.draw(ctx);
+    }
+    ctx.globalAlpha = 1;
   }
 }
 
@@ -446,10 +519,22 @@ function draw3DView(ctx, vp, race, player, mode, camHeading, time) {
     if (item.type === 'pyramid') scene.pyramid(item);
     else if (item.type === 'palm') scene.palm(item);
     else if (item.type === 'stand') scene.stand(item);
+    else if (item.type === 'building') scene.building(item);
+    else if (item.type === 'tower') scene.tower(item);
+    else if (item.type === 'felucca') scene.felucca(item);
   }
   for (const r of race.racers) {
     if (mode === 'cockpit' && r === player) continue; // you're sitting in it
     scene.kart(r.kart);
+  }
+  // Your ghost, see-through. (In your own seat you can't see it while it's on top of you.)
+  if (race.ghost) {
+    const gk = race.ghost.kart;
+    if (mode !== 'cockpit' || Math.hypot(gk.x - player.kart.x, gk.y - player.kart.y) > 16) {
+      scene.alpha = 0.5;
+      scene.kart(gk);
+      scene.alpha = 1;
+    }
   }
   scene.draw(ctx);
 

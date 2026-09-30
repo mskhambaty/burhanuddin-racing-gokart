@@ -2,7 +2,7 @@
 // Works with the keyboard (Up/Down + Enter) or the mouse.
 
 const Garage = {
-  selected: 4,        // which button is highlighted (4 = the RACE button)
+  selected: 6,        // which button is highlighted (6 = the RACE button)
   message: null,      // { text, good, time } — a short note after buying
   resetArmed: false,  // press R twice to start a new career
   showcase: null,     // the big kart drawn on the left
@@ -11,12 +11,14 @@ const Garage = {
     right: { x: 406, y: 360, w: 44, h: 40 },
   },
 
-  // Buttons: one per upgrade, then the race button.
+  // Buttons: one per upgrade, then the track and mode pickers, then the race button.
   buttons() {
     const list = UPGRADE_ORDER.map((key, i) => ({
-      kind: 'upgrade', key, x: 560, y: 150 + i * 92, w: 680, h: 80,
+      kind: 'upgrade', key, x: 560, y: 150 + i * 76, w: 680, h: 68,
     }));
-    list.push({ kind: 'race', x: 560, y: 530, w: 680, h: 110 });
+    list.push({ kind: 'track', x: 560, y: 460, w: 336, h: 52 });
+    list.push({ kind: 'mode', x: 904, y: 460, w: 336, h: 52 });
+    list.push({ kind: 'race', x: 560, y: 526, w: 680, h: 114 });
     return list;
   },
 
@@ -35,11 +37,13 @@ const Garage = {
     }
 
     let activate = Input.pressed('Enter') || Input.pressed('NumpadEnter') || Input.pressed('Space');
+    let clickDir = 1; // clicking the left end of a picker goes back, anywhere else goes forward
     buttons.forEach((b, i) => {
       if (Input.mouse.moved && Input.mouseIn(b)) this.selected = i;
       if (Input.mouse.clicked && Input.mouseIn(b)) {
         this.selected = i;
         activate = true;
+        clickDir = Input.mouse.x < b.x + 64 ? -1 : 1;
       }
     });
 
@@ -47,16 +51,26 @@ const Garage = {
       const b = buttons[this.selected];
       if (b.kind === 'race') {
         game.startRace();
+      } else if (b.kind === 'track') {
+        game.changeTrack(clickDir);
+      } else if (b.kind === 'mode') {
+        game.changeMode();
       } else {
         const result = Career.buy(b.key);
         this.message = { text: result.text, good: result.ok, time: 2.5 };
       }
     }
 
-    // Change team with Left/Right or by clicking the arrows under the kart.
+    // Left/Right change the track or mode when one of those is highlighted,
+    // otherwise they change your team (you can also click the arrows under the kart).
+    let keyDir = 0;
+    if (Input.pressed('ArrowLeft') || Input.pressed('KeyA')) keyDir = -1;
+    if (Input.pressed('ArrowRight') || Input.pressed('KeyD')) keyDir = 1;
+    const kind = buttons[this.selected].kind;
     let teamDir = 0;
-    if (Input.pressed('ArrowLeft') || Input.pressed('KeyA')) teamDir = -1;
-    if (Input.pressed('ArrowRight') || Input.pressed('KeyD')) teamDir = 1;
+    if (keyDir && kind === 'track') game.changeTrack(keyDir);
+    else if (keyDir && kind === 'mode') game.changeMode();
+    else teamDir = keyDir;
     if (Input.mouse.clicked && Input.mouseIn(this.teamArrows.left)) teamDir = -1;
     if (Input.mouse.clicked && Input.mouseIn(this.teamArrows.right)) teamDir = 1;
     if (teamDir) {
@@ -114,7 +128,12 @@ const Garage = {
     buttons.forEach((b, i) => {
       const on = i === this.selected;
       if (b.kind === 'upgrade') this.drawUpgrade(ctx, b, on);
-      else this.drawRaceButton(ctx, b, on, game);
+      else if (b.kind === 'track') {
+        const record = Save.get('best-lap:' + game.track.id, null);
+        this.drawPicker(ctx, b, on, 'TRACK  ·  best lap ' + formatTime(record), game.track.name);
+      } else if (b.kind === 'mode') {
+        this.drawPicker(ctx, b, on, 'MODE', game.mode === 'ghost' ? 'YOU  (race your ghost)' : 'Race the computer');
+      } else this.drawRaceButton(ctx, b, on, game);
     });
 
     // Message after buying something.
@@ -124,7 +143,9 @@ const Garage = {
         color: this.message.good ? '#5dff7a' : '#ff8a7a', outline: false,
       });
     }
-    HUD.text(ctx, '↑ ↓ choose  ·  Enter buy / race  ·  or click  ·  Esc menu  ·  R R new career', GAME_WIDTH / 2, 706, {
+    const sel = buttons[this.selected].kind;
+    const hint = sel === 'track' || sel === 'mode' ? '← → change' : 'Enter buy / race';
+    HUD.text(ctx, '↑ ↓ choose  ·  ' + hint + '  ·  or click  ·  Esc menu  ·  R R new career', GAME_WIDTH / 2, 706, {
       font: '14px system-ui, sans-serif', align: 'center', color: '#777', outline: false,
     });
   },
@@ -163,7 +184,7 @@ const Garage = {
     HUD.text(ctx, TEAMS[Career.data.team].name, cx, a.left.y + 28, {
       font: 'bold 22px system-ui, sans-serif', align: 'center', outline: false, maxWidth: 250,
     });
-    HUD.text(ctx, '← → change team', cx, a.left.y + 52, {
+    HUD.text(ctx, '← → change team (when no picker is selected)', cx, a.left.y + 52, {
       font: '13px system-ui, sans-serif', align: 'center', color: '#999', outline: false,
     });
   },
@@ -208,8 +229,8 @@ const Garage = {
     const price = Career.nextPrice(b.key);
     this.drawButtonBox(ctx, b, on);
 
-    HUD.text(ctx, u.name, b.x + 24, b.y + 34, { font: 'bold 22px system-ui, sans-serif', outline: false });
-    HUD.text(ctx, u.improves + '  +' + Math.round(u.perLevel * 100) + '% per level', b.x + 24, b.y + 60, {
+    HUD.text(ctx, u.name, b.x + 24, b.y + 30, { font: 'bold 22px system-ui, sans-serif', outline: false });
+    HUD.text(ctx, u.improves + '  +' + Math.round(u.perLevel * 100) + '% per level', b.x + 24, b.y + 54, {
       font: '14px system-ui, sans-serif', color: '#999', outline: false,
     });
 
@@ -217,10 +238,10 @@ const Garage = {
     for (let i = 0; i < ECONOMY.maxLevel; i++) {
       ctx.fillStyle = i < lvl ? COLORS.gold : '#3a3a3a';
       ctx.beginPath();
-      ctx.roundRect(b.x + 250 + i * 34, b.y + 30, 26, 18, 4);
+      ctx.roundRect(b.x + 250 + i * 34, b.y + 22, 26, 18, 4);
       ctx.fill();
     }
-    HUD.text(ctx, 'Level ' + lvl, b.x + 250, b.y + 68, {
+    HUD.text(ctx, 'Level ' + lvl, b.x + 250, b.y + 57, {
       font: '13px system-ui, sans-serif', color: '#888', outline: false,
     });
 
@@ -232,24 +253,45 @@ const Garage = {
       label = 'Upgrade  ' + formatMoney(price);
       color = Career.data.money >= price ? '#5dff7a' : '#ff8a7a';
     }
-    HUD.text(ctx, label, b.x + b.w - 24, b.y + 48, {
+    HUD.text(ctx, label, b.x + b.w - 24, b.y + 42, {
       font: 'bold 20px system-ui, sans-serif', color, align: 'right', outline: false,
     });
   },
 
+  // A picker: ◀ value ▶ (click either end, or anywhere to go forward).
+  drawPicker(ctx, b, on, label, value) {
+    this.drawButtonBox(ctx, b, on);
+    HUD.text(ctx, label, b.x + b.w / 2, b.y + 19, {
+      font: '12px system-ui, sans-serif', align: 'center', color: '#999', outline: false, maxWidth: b.w - 110,
+    });
+    HUD.text(ctx, value, b.x + b.w / 2, b.y + 41, {
+      font: 'bold 20px system-ui, sans-serif', align: 'center', outline: false, maxWidth: b.w - 110,
+    });
+    for (const [x, ch] of [[b.x + 22, '◀'], [b.x + b.w - 22, '▶']]) {
+      HUD.text(ctx, ch, x, b.y + 33, {
+        font: 'bold 18px system-ui, sans-serif', align: 'center', color: COLORS.gold, outline: false,
+      });
+    }
+  },
+
   drawRaceButton(ctx, b, on, game) {
     this.drawButtonBox(ctx, b, on, COLORS.gold);
-    HUD.text(ctx, 'RACE  ▶  ' + game.track.name, b.x + 24, b.y + 44, {
-      font: 'bold 26px system-ui, sans-serif', color: COLORS.gold, outline: false,
+    HUD.text(ctx, (game.mode === 'ghost' ? 'RACE YOUR GHOST  ▶  ' : 'RACE  ▶  ') + game.track.name, b.x + 24, b.y + 42, {
+      font: 'bold 26px system-ui, sans-serif', color: COLORS.gold, outline: false, maxWidth: b.w - 48,
     });
-    const diff = DIFFICULTIES[game.difficulty].label;
-    const prizes = ECONOMY.prizes.slice(0, 3).map((_, i) => ordinal(i + 1) + ' ' + formatMoney(prizeFor(i + 1, game.difficulty)));
-    HUD.text(ctx, 'Prizes: ' + prizes.join('  ·  '), b.x + 24, b.y + 74, {
-      font: '15px system-ui, sans-serif', color: '#ccc', outline: false,
+    const line = (str, y, color) => HUD.text(ctx, str, b.x + 24, y, {
+      font: '15px system-ui, sans-serif', color, outline: false, maxWidth: b.w - 48,
     });
-    HUD.text(ctx, diff + ' computer drivers · ' + game.track.laps + ' laps · change on the main menu', b.x + 24, b.y + 96, {
-      font: '13px system-ui, sans-serif', color: '#888', outline: false,
-    });
+    if (game.mode === 'ghost') {
+      const g = Ghosts.load(game.track);
+      line(g ? 'Your ghost: ' + formatTime(g.total) + ' for ' + game.track.laps + ' laps, driven for ' + (TEAMS[g.team] || TEAMS.burhanuddin).name
+             : 'No ghost yet — your first finished race here becomes your ghost', b.y + 72, '#ddd');
+      line('Just you against your best time · no prizes · beat it and the ghost gets faster', b.y + 96, '#888');
+    } else {
+      const diff = DIFFICULTIES[game.difficulty];
+      const prizes = ECONOMY.prizes.slice(0, 3).map((_, i) => ordinal(i + 1) + ' ' + formatMoney(prizeFor(i + 1, game.difficulty)));
+      line('Prizes: ' + prizes.join('  ·  '), b.y + 72, '#ccc');
+      line(diff.label + ' computer drivers (top speed ' + diff.topKmh + ' km/h) · ' + game.track.laps + ' laps · change on the main menu', b.y + 96, '#888');
+    }
   },
 };
-
