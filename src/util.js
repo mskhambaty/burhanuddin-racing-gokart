@@ -2,10 +2,17 @@
 
 // Bump this (and the ?v= numbers in index.html) whenever you release a change.
 // It's shown on the title screen so you can tell which version you are playing.
-const GAME_VERSION = '7  ·  30 Sep 2026';
+const GAME_VERSION = '8  ·  30 Sep 2026';
+
+// The screen is always 1280 x 720. The world (the map the tracks are built on)
+// is TRACK_SCALE times bigger in each direction, so a bigger TRACK_SCALE means
+// bigger tracks and longer laps. 1 = one screen, 2 = four screens, and so on.
+const TRACK_SCALE = 2;
 
 const GAME_WIDTH = 1280;
 const GAME_HEIGHT = 720;
+const WORLD_WIDTH = GAME_WIDTH * TRACK_SCALE;
+const WORLD_HEIGHT = GAME_HEIGHT * TRACK_SCALE;
 
 // Team colours: red & gold.
 const COLORS = {

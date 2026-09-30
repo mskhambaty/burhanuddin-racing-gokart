@@ -127,9 +127,9 @@ class Kart {
     // Never leave the screen.
     const r = KART_RADIUS;
     if (this.x < r) { this.x = r; this.bounce(-1, 0, 0.3, 0.6); }
-    if (this.x > GAME_WIDTH - r) { this.x = GAME_WIDTH - r; this.bounce(1, 0, 0.3, 0.6); }
+    if (this.x > WORLD_WIDTH - r) { this.x = WORLD_WIDTH - r; this.bounce(1, 0, 0.3, 0.6); }
     if (this.y < r) { this.y = r; this.bounce(0, -1, 0.3, 0.6); }
-    if (this.y > GAME_HEIGHT - r) { this.y = GAME_HEIGHT - r; this.bounce(0, 1, 0.3, 0.6); }
+    if (this.y > WORLD_HEIGHT - r) { this.y = WORLD_HEIGHT - r; this.bounce(0, 1, 0.3, 0.6); }
   }
 
   // Bounce off a surface whose outward direction is (nx, ny).

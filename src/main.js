@@ -13,6 +13,9 @@ const STEP = 1 / 120;
 const VIEW_MODES = ['cockpit', 'chase', 'top'];
 const VIEW_LABELS = { cockpit: 'Steering wheel', chase: 'Rear', top: 'Top down' };
 
+// The top-down camera follows your kart. Smaller = zoomed out (see more of the track).
+const TOPDOWN_ZOOM = 0.85;
+
 const Game = {
   screen: 'menu', // menu | garage | race | paused
   track: TRACKS[Save.get('track', 'giza')] || TRACKS.giza,
@@ -32,9 +35,10 @@ const Game = {
     Career.load();
     if (!VIEW_MODES.includes(this.view)) this.view = 'cockpit';
     this.skidLayer = document.createElement('canvas');
-    this.skidLayer.width = GAME_WIDTH;
-    this.skidLayer.height = GAME_HEIGHT;
+    this.skidLayer.width = WORLD_WIDTH;
+    this.skidLayer.height = WORLD_HEIGHT;
     this.showMenu();
+    setTimeout(() => this.warmUp(this.track), 200); // the track you last chose
 
     let last = performance.now();
     let acc = 0;
@@ -58,7 +62,7 @@ const Game = {
   },
 
   clearSkids() {
-    this.skidLayer.getContext('2d').clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    this.skidLayer.getContext('2d').clearRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
   },
 
   showMenu() {
@@ -74,6 +78,7 @@ const Game = {
   },
 
   startRace() {
+    this.warmUp(this.track); // a no-op if the garage already did it
     const players = [{ team: Career.data.team, stats: Career.kartStats() }];
     this.race = new Race(this.track, 1, this.difficulty, players, { ghostMode: this.mode === 'ghost' });
     this.race.controlMode = this.controls;
@@ -91,11 +96,20 @@ const Game = {
     this.prize = Career.recordRace(this.race.humans[0].position, this.difficulty);
   },
 
+  // The bigger tracks take a moment to draw the first time. Do it now (while
+  // you are in the garage) so the race itself never stutters.
+  warmUp(track) {
+    track.render();      // the map, scenery and minimap
+    groundFor(track);    // the ground used by the 3D views
+  },
+
   // Pick the track (dir = 1 next, -1 previous).
   changeTrack(dir) {
     const i = TRACK_ORDER.indexOf(this.track.id);
     this.track = TRACKS[TRACK_ORDER[(i + dir + TRACK_ORDER.length) % TRACK_ORDER.length]];
     Save.set('track', this.track.id);
+    const track = this.track;
+    setTimeout(() => this.warmUp(track), 40); // after the garage has redrawn
   },
 
   changeMode() {
@@ -194,7 +208,7 @@ const Game = {
     this.paintSkids();
 
     if (this.screen === 'menu') {
-      this.drawTopDown();
+      this.drawTopDown(true); // the whole map, behind the title card
       HUD.title(ctx, this);
       return;
     }
@@ -227,10 +241,29 @@ const Game = {
     this.race.skids.length = 0;
   },
 
-  drawTopDown() {
+  // The view from above. In a race the camera follows your kart; on the title
+  // screen (whole = true) the whole map is shown.
+  drawTopDown(whole) {
     const race = this.race;
-    ctx.drawImage(this.track.render(), 0, 0);
-    ctx.drawImage(this.skidLayer, 0, 0);
+    let zoom = GAME_WIDTH / WORLD_WIDTH, x = 0, y = 0;
+    if (!whole) {
+      const k = race.humans[0].kart;
+      zoom = TOPDOWN_ZOOM;
+      x = clamp(k.x - GAME_WIDTH / zoom / 2, 0, Math.max(0, WORLD_WIDTH - GAME_WIDTH / zoom));
+      y = clamp(k.y - GAME_HEIGHT / zoom / 2, 0, Math.max(0, WORLD_HEIGHT - GAME_HEIGHT / zoom));
+    }
+    const vw = GAME_WIDTH / zoom, vh = GAME_HEIGHT / zoom;
+    // Only the part of the map you can see is drawn.
+    ctx.drawImage(this.track.render(), x, y, vw, vh, 0, 0, GAME_WIDTH, GAME_HEIGHT);
+    ctx.drawImage(this.skidLayer, x, y, vw, vh, 0, 0, GAME_WIDTH, GAME_HEIGHT);
+    ctx.save();
+    ctx.scale(zoom, zoom);
+    ctx.translate(-x, -y);
+    this.drawRacersFromAbove(race);
+    ctx.restore();
+  },
+
+  drawRacersFromAbove(race) {
     for (const r of race.racers) {
       ctx.globalAlpha = r.finished && !r.isHuman ? 0.45 : 1;
       r.kart.draw(ctx);

@@ -9,6 +9,17 @@
 
 const TRACKS = {};
 
+// Track designs are drawn on a one-screen map. These scale them up to the
+// real (TRACK_SCALE times bigger) map. radiusScale lets a track keep its
+// corners tighter than the straights are long (Cairo does this).
+function scaleControlPoints(points) {
+  return points.map(([x, y]) => [x * TRACK_SCALE, y * TRACK_SCALE]);
+}
+
+function scaleCorners(corners, radiusScale = TRACK_SCALE) {
+  return corners.map(([x, y, r]) => [x * TRACK_SCALE, y * TRACK_SCALE, (r || 0) * radiusScale]);
+}
+
 // The order tracks appear in the garage.
 const TRACK_ORDER = ['giza', 'cairo', 'nile'];
 
@@ -73,7 +84,7 @@ function scatterBuildings(track, rand, opts) {
   for (let i = 0; i < opts.tries; i++) {
     const w = opts.minSize + rand() * (opts.maxSize - opts.minSize);
     const h = opts.minSize + rand() * (opts.maxSize - opts.minSize);
-    const x = Math.round(6 + rand() * (GAME_WIDTH - w - 12)), y = Math.round(6 + rand() * (GAME_HEIGHT - h - 12));
+    const x = Math.round(6 + rand() * (WORLD_WIDTH - w - 12)), y = Math.round(6 + rand() * (WORLD_HEIGHT - h - 12));
     if (opts.allowed && !opts.allowed(x, y, w, h)) continue;
     if (!rectIsClear(track, x, y, w, h, 4)) continue;
     const gap = 8;
@@ -98,7 +109,7 @@ class Track {
     this.roadWidth = def.roadWidth || 60;      // asphalt width
     this.kerbWidth = 6;                        // red/white kerb on each side
     this.runoff = def.runoff || 36;            // sand between kerb and tyre wall
-    this.sectors = def.sectors || 8;           // checkpoints per lap
+    this.sectors = def.sectors || 12;          // checkpoints per lap
     this.colors = Object.assign({
       desert: '#d8b774',
       runoff: '#e6cf9c',
@@ -114,6 +125,10 @@ class Track {
     this.buildScenery = def.buildScenery || null;
     this.scenery = null;      // pyramids, palms, grandstand (see getScenery)
     this.seed = def.seed || 1;
+    // Lap records and ghosts are kept per track *and* per map size, so a record
+    // from a smaller version of the track never gets compared with a bigger one.
+    this.recordKey = 'best-lap:' + def.id + ':x' + TRACK_SCALE;
+    this.ghostKey = 'ghost:' + def.id + ':x' + TRACK_SCALE;
 
     this.halfRoad = this.roadWidth / 2 + this.kerbWidth; // kerbs count as road
     this.wallDist = this.halfRoad + this.runoff;         // distance to tyre wall
@@ -222,9 +237,32 @@ class Track {
   }
 
   // Is a circle at (x, y) with radius r fully outside the tyre walls?
-  // Used to place decorations so they never sit on the track.
+  // Used to place decorations so they never sit on the track. (This is asked
+  // thousands of times when scenery is placed, so it uses a grid of the road's
+  // points instead of checking every one.)
   isClear(x, y, r) {
-    return this.locate(x, y).dist > this.wallDist + 8 + r;
+    const cell = 100;
+    if (!this.grid) {
+      this.grid = new Map();
+      for (const p of this.points) {
+        const key = Math.floor(p.x / cell) + ',' + Math.floor(p.y / cell);
+        if (!this.grid.has(key)) this.grid.set(key, []);
+        this.grid.get(key).push(p);
+      }
+    }
+    const limit = this.wallDist + 8 + r;
+    const reach = Math.ceil(limit / cell);
+    const gx = Math.floor(x / cell), gy = Math.floor(y / cell);
+    for (let cx = gx - reach; cx <= gx + reach; cx++) {
+      for (let cy = gy - reach; cy <= gy + reach; cy++) {
+        const list = this.grid.get(cx + ',' + cy);
+        if (!list) continue;
+        for (const p of list) {
+          if ((p.x - x) * (p.x - x) + (p.y - y) * (p.y - y) < limit * limit) return false;
+        }
+      }
+    }
+    return true;
   }
 
   // Scenery is a list of things like { type: 'pyramid', x, y, size }.
@@ -240,8 +278,8 @@ class Track {
   render() {
     if (this.canvas) return this.canvas;
     const c = document.createElement('canvas');
-    c.width = GAME_WIDTH;
-    c.height = GAME_HEIGHT;
+    c.width = WORLD_WIDTH;
+    c.height = WORLD_HEIGHT;
     const ctx = c.getContext('2d');
     ctx.drawImage(this.renderGround(), 0, 0);
     const rand = seededRandom(this.seed + 3);
@@ -263,15 +301,15 @@ class Track {
   renderGround() {
     if (this.groundCanvas) return this.groundCanvas;
     const c = document.createElement('canvas');
-    c.width = GAME_WIDTH;
-    c.height = GAME_HEIGHT;
+    c.width = WORLD_WIDTH;
+    c.height = WORLD_HEIGHT;
     const ctx = c.getContext('2d');
     const rand = seededRandom(this.seed);
 
     // Desert with speckles.
     ctx.fillStyle = this.colors.desert;
     ctx.fillRect(0, 0, c.width, c.height);
-    for (let i = 0; i < 2500; i++) {
+    for (let i = 0; i < 2500 * TRACK_SCALE * TRACK_SCALE; i++) {
       ctx.fillStyle = rand() < 0.5 ? this.colors.speckleDark : this.colors.speckleLight;
       const r = 1 + rand() * 2.5;
       ctx.beginPath();

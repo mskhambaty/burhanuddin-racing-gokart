@@ -101,7 +101,7 @@ class AIDriver {
     // Top speed in pixels per second (1 km/h = 1 / 0.36 px/s). Drivers vary by
     // a few percent so they don't all run nose to tail.
     this.topSpeed = (d.topKmh / 0.36) * (0.96 + 0.04 * profile.skill);
-    racer.kart.stats.topSpeed = this.topSpeed * 1.05; // so the kart can actually reach it
+    racer.kart.stats.topSpeed = this.topSpeed * 1.02; // just above the limit, so the kart can reach it but not run away
     this.mistakeRate = d.mistakes * (1.4 - profile.skill * 0.6);
     this.lane = 0;            // extra sideways offset used for overtaking
     this.laneTimer = 0;
@@ -160,7 +160,7 @@ class AIDriver {
     if (this.racer.finished) wanted = 60; // cool-down lap
     let throttle = 0, brake = 0;
     if (speed < wanted) throttle = 1;
-    else if (speed > wanted + 12) brake = 1;
+    else if (speed > wanted + 8) brake = 1;
 
     return { throttle, brake, steer };
   }

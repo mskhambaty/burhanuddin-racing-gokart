@@ -20,7 +20,7 @@ TRACKS.nile = new Track({
     speckleDark: 'rgba(40,90,30,0.13)',
     speckleLight: 'rgba(255,255,220,0.12)',
   },
-  points: roundedLoop([
+  points: roundedLoop(scaleCorners([
     [900, 590, 0],     // start / finish straight (driving left)
     [720, 590, 55],    // bottom chicane
     [650, 520, 55],
@@ -34,7 +34,7 @@ TRACKS.nile = new Track({
     [800, 130, 55],
     [1130, 130, 150],  // big sweeper at the east end
     [1130, 590, 150],
-  ]),
+  ])),
 
   // Paint the Nile inside the track, with an island in the middle.
   paintGround(ctx, track, rand) {
@@ -42,7 +42,8 @@ TRACKS.nile = new Track({
     const inside = new Path2D();
     track.points.forEach((p, i) => (i === 0 ? inside.moveTo(p.x, p.y) : inside.lineTo(p.x, p.y)));
     inside.closePath();
-    const g = ctx.createLinearGradient(0, 120, 0, 600);
+    const S = TRACK_SCALE;
+    const g = ctx.createLinearGradient(0, 120 * S, 0, 600 * S);
     g.addColorStop(0, '#2f7fbd');
     g.addColorStop(0.5, '#4a9bd3');
     g.addColorStop(1, '#2f7fbd');
@@ -54,8 +55,8 @@ TRACKS.nile = new Track({
     ctx.clip(inside);
     ctx.strokeStyle = 'rgba(255,255,255,0.22)';
     ctx.lineWidth = 1.5;
-    for (let i = 0; i < 260; i++) {
-      const x = rand() * GAME_WIDTH, y = 100 + rand() * 540, w = 8 + rand() * 18;
+    for (let i = 0; i < 260 * S * S; i++) {
+      const x = rand() * WORLD_WIDTH, y = (100 + rand() * 540) * S, w = 8 + rand() * 18;
       ctx.beginPath();
       ctx.moveTo(x, y);
       ctx.quadraticCurveTo(x + w / 2, y - 3, x + w, y);
@@ -67,25 +68,26 @@ TRACKS.nile = new Track({
     const island = (rx, ry, color) => {
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.ellipse(650, 372, rx, ry, -0.08, 0, Math.PI * 2);
+      ctx.ellipse(650 * S, 372 * S, rx * S, ry * S, -0.08, 0, Math.PI * 2);
       ctx.fill();
     };
     island(250, 102, '#e6dcb8');
     island(238, 92, '#7fa64f');
     ctx.fillStyle = '#6f9a45';
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 80 * S * S; i++) {
       const a = rand() * Math.PI * 2, d = Math.sqrt(rand());
       ctx.beginPath();
-      ctx.arc(650 + Math.cos(a) * d * 220, 372 + Math.sin(a) * d * 80, 3 + rand() * 6, 0, Math.PI * 2);
+      ctx.arc((650 + Math.cos(a) * d * 220) * S, (372 + Math.sin(a) * d * 80) * S, 3 + rand() * 6, 0, Math.PI * 2);
       ctx.fill();
     }
   },
 
   buildScenery(track, rand) {
     const items = [];
+    const S = TRACK_SCALE;
 
     // Cairo Tower on the island.
-    items.push({ type: 'tower', x: 640, y: 372, r: 26 });
+    items.push({ type: 'tower', x: 640 * S, y: 372 * S, r: 26 * S });
 
     // Buildings and palms on the island.
     const islandBuildings = [
@@ -94,25 +96,27 @@ TRACKS.nile = new Track({
       [580, 320, 30, 24, 40, '#bfa987'], [700, 320, 30, 24, 28, '#b09c82'],
     ];
     for (const [x, y, w, h, height, color] of islandBuildings) {
-      items.push({ type: 'building', x, y, w, h, height, color });
+      items.push({ type: 'building', x: x * S, y: y * S, w: w * S, h: h * S, height: height * 1.4, color });
     }
-    for (let i = 0; i < 26; i++) {
+    for (let i = 0; i < 26 * S * S; i++) {
       const a = rand() * Math.PI * 2, d = 0.35 + rand() * 0.6;
-      const x = 650 + Math.cos(a) * d * 215, y = 372 + Math.sin(a) * d * 76;
+      const x = (650 + Math.cos(a) * d * 215) * S, y = (372 + Math.sin(a) * d * 76) * S;
       const size = 11 + rand() * 6;
       const blocked = items.some((o) => o.w !== undefined && x > o.x - size && x < o.x + o.w + size && y > o.y - size && y < o.y + o.h + size)
-        || Math.hypot(x - 640, y - 372) < 40;
+        || Math.hypot(x - 640 * S, y - 372 * S) < 40 * S;
       if (!blocked) items.push({ type: 'palm', x, y, size, rot: rand() * Math.PI * 2 });
     }
 
     // Feluccas drifting on the river.
-    for (const [x, y, rot] of [[300, 260, 0.2], [360, 470, -0.3], [960, 250, 2.9], [1010, 460, 0.5], [880, 330, 3.4], [430, 300, 0.1]]) {
-      if (track.locate(x, y).dist > track.wallDist + 30) items.push({ type: 'felucca', x, y, rot });
+    const feluccas = [[300, 260, 0.2], [360, 470, -0.3], [960, 250, 2.9], [1010, 460, 0.5], [880, 330, 3.4], [430, 300, 0.1],
+      [560, 250, 0.4], [740, 480, 3.0], [820, 260, -0.2], [400, 400, 2.6]];
+    for (const [x, y, rot] of feluccas) {
+      if (track.locate(x * S, y * S).dist > track.wallDist + 30) items.push({ type: 'felucca', x: x * S, y: y * S, rot });
     }
 
     // Buildings along the outside of the corniche, palms in the gardens.
     items.push(...scatterBuildings(track, rand, {
-      tries: 900,
+      tries: 900 * S * S,
       minSize: 40, maxSize: 90,
       minHeight: 26, maxHeight: 70,
       colors: ['#d6c6a8', '#c4b092', '#e0d3ba', '#b8a48a', '#cfbfa5'],
@@ -123,8 +127,8 @@ TRACKS.nile = new Track({
         return !isInsideLoop(track, cx, cy);
       },
     }));
-    for (let i = 0; i < 160; i++) {
-      const x = 14 + rand() * (GAME_WIDTH - 28), y = 14 + rand() * (GAME_HEIGHT - 28);
+    for (let i = 0; i < 160 * S * S; i++) {
+      const x = 14 + rand() * (WORLD_WIDTH - 28), y = 14 + rand() * (WORLD_HEIGHT - 28);
       const size = 11 + rand() * 7;
       if (isInsideLoop(track, x, y)) continue;
       const onBuilding = items.some((o) => o.w !== undefined && x > o.x - size && x < o.x + o.w + size && y > o.y - size && y < o.y + o.h + size);

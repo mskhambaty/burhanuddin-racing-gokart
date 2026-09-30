@@ -70,15 +70,9 @@ const HUD = {
     if (racer.wrongWayTime > 0.8) msg = 'WRONG WAY!';
     else if (racer.missedCheckpoint) msg = 'MISSED CHECKPOINT — GO BACK';
     if (!msg) return;
-    if (view === 'top') {
-      this.text(ctx, msg, racer.kart.x, racer.kart.y - 22, {
-        font: 'bold 14px system-ui, sans-serif', align: 'center', color: '#ff6b5a',
-      });
-    } else {
-      this.text(ctx, msg, GAME_WIDTH / 2, 170, {
-        font: 'bold 32px system-ui, sans-serif', align: 'center', color: '#ff6b5a', outlineWidth: 6,
-      });
-    }
+    this.text(ctx, msg, GAME_WIDTH / 2, 170, {
+      font: 'bold 32px system-ui, sans-serif', align: 'center', color: '#ff6b5a', outlineWidth: 6,
+    });
   },
 
   countdown(ctx, race, controls) {
@@ -146,7 +140,7 @@ const HUD = {
     this.text(ctx, game.track.name + ' · ' + game.track.laps + ' laps', cx, 292, {
       font: '18px system-ui, sans-serif', align: 'center', color: '#ddd', outline: false,
     });
-    this.text(ctx, 'Track record: ' + formatTime(Save.get('best-lap:' + game.track.id, null)), cx, 318, {
+    this.text(ctx, 'Track record: ' + formatTime(Save.get(game.track.recordKey, null)), cx, 318, {
       font: '16px system-ui, sans-serif', align: 'center', color: COLORS.goldLight, outline: false,
     });
 
@@ -180,7 +174,7 @@ const HUD = {
     ctx.strokeStyle = COLORS.gold;
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, w, h);
-    const sx = w / GAME_WIDTH, sy = h / GAME_HEIGHT;
+    const sx = w / WORLD_WIDTH, sy = h / WORLD_HEIGHT;
     for (const r of race.racers) {
       if (r === me) continue;
       ctx.fillStyle = r.kart.body;

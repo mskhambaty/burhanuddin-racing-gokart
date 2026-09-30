@@ -237,7 +237,7 @@ class Race {
   }
 
   saveRecord(lapTime) {
-    const recordKey = 'best-lap:' + this.track.id;
+    const recordKey = this.track.recordKey;
     const record = Save.get(recordKey, null);
     if (record == null || lapTime < record) {
       Save.set(recordKey, lapTime);

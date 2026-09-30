@@ -33,7 +33,7 @@ Every race starts in the steering wheel view. Click the 👁 button (top right) 
 |---|---|
 | **Steering wheel** (main) | From the driver's seat: the wheel, your hands, the kart's nose |
 | **Rear** | A camera following behind your kart |
-| **Top down** | The whole track from above |
+| **Top down** | From above, with the camera following your kart |
 
 A minimap in the corner shows the whole track in the 3D views.
 
@@ -42,6 +42,8 @@ A minimap in the corner shows the whole track in the 3D views.
 ## Tracks
 
 Pick the track in the garage (◀ ▶ or the ← → keys). Each track keeps its own best lap.
+The tracks are big: a lap takes about 25–50 seconds (a race is 3 laps), and the
+map is four screens big, so in the top-down view the camera follows your kart.
 
 | Track | What it's like |
 |---|---|
@@ -51,6 +53,10 @@ Pick the track in the garage (◀ ▶ or the ← → keys). Each track keeps its
 
 ![Nile Corniche](screenshot-nile.png)
 ![Cairo City Circuit](screenshot-cairo.png)
+
+The whole of the Cairo City Circuit from above:
+
+![Cairo City Circuit map](screenshot-cairo-map.png)
 
 ## Modes
 
@@ -101,6 +107,8 @@ Your best lap on each track is saved as the track record.
 
 ## Make it your own
 
+- **Make all the tracks bigger or smaller:** `TRACK_SCALE` in `src/util.js` (2 = twice as long,
+  3 = three times, 1 = the original one-screen size). Records and ghosts are kept separately for each size.
 - **Change a track:** edit the corners in `src/tracks/giza.js`, `cairo.js` or `nile.js` and reload the page.
   Each corner is `[x, y, radius]` — move it, or change the radius to make the turn tighter or wider.
 - **Make a new track:** copy one of those files, give it a new `id` and add the id to `TRACK_ORDER` in `src/track.js`

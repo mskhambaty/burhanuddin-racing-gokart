@@ -11,7 +11,7 @@ const Ghosts = {
   cache: {},
 
   key(track) {
-    return 'ghost:' + track.id;
+    return track.ghostKey;
   },
 
   // Your saved ghost for a track, or null if you haven't finished a race there yet.

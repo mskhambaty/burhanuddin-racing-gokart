@@ -55,6 +55,9 @@ can be designed by editing numbers — a great thing for your nephew to try hims
 | 2 | **Cairo City Circuit** | Tight downtown streets between buildings: 90° corners, two zig-zags and a square notch. |
 | 3 | **Nile Corniche** | Fast straights and big sweepers around the river, with Zamalek island, the Cairo Tower and feluccas. |
 
+The tracks are on a map four screens big (twice as wide and twice as high): laps take about 25–50 seconds.
+The top-down view follows the kart, and there is a minimap in the 3D views.
+
 All three are available from the start and picked in the garage (unlocking by wins is still an idea for later).
 
 Later: Khan el-Khalili, Zamalek & Cairo Tower, Downtown night race, and other Middle East
@@ -186,3 +189,4 @@ burhanuddin-racing-gokart/
 8. **YOU mode:** race a see-through ghost of your own best race on the track (exact replay).
    Set by any finished race; per track; no prizes.
 9. Computer-driver top speeds: **Easy ≈ 60, Medium ≈ 78, Hard ≈ 100 km/h.**
+10. **Big tracks:** the map is `TRACK_SCALE` (2) times bigger than one screen; the top-down camera follows the kart.

@@ -129,7 +129,7 @@ const Garage = {
       const on = i === this.selected;
       if (b.kind === 'upgrade') this.drawUpgrade(ctx, b, on);
       else if (b.kind === 'track') {
-        const record = Save.get('best-lap:' + game.track.id, null);
+        const record = Save.get(game.track.recordKey, null);
         this.drawPicker(ctx, b, on, 'TRACK  ·  best lap ' + formatTime(record), game.track.name);
       } else if (b.kind === 'mode') {
         this.drawPicker(ctx, b, on, 'MODE', game.mode === 'ghost' ? 'YOU  (race your ghost)' : 'Race the computer');

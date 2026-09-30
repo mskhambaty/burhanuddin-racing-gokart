@@ -443,11 +443,12 @@ class Scene {
 
   // Cairo Tower: a tall shaft with the lattice "lotus" head.
   tower(t) {
-    if (!this.visible(t.x, t.y, 30)) return;
-    this.box(t.x, t.y, 0, -5, 5, -5, 5, 0, 118, '#c4bcae');
-    this.box(t.x, t.y, 0, -13, 13, -13, 13, 118, 142, '#a39b8c');
-    this.box(t.x, t.y, 0, -8, 8, -8, 8, 142, 150, '#d8d1c3');
-    this.box(t.x, t.y, 0, -2, 2, -2, 2, 150, 176, '#c4bcae');
+    const k = t.r / 26; // the tower is drawn bigger on a bigger map
+    if (!this.visible(t.x, t.y, 30 * k)) return;
+    this.box(t.x, t.y, 0, -5 * k, 5 * k, -5 * k, 5 * k, 0, 118 * k, '#c4bcae');
+    this.box(t.x, t.y, 0, -13 * k, 13 * k, -13 * k, 13 * k, 118 * k, 142 * k, '#a39b8c');
+    this.box(t.x, t.y, 0, -8 * k, 8 * k, -8 * k, 8 * k, 142 * k, 150 * k, '#d8d1c3');
+    this.box(t.x, t.y, 0, -2 * k, 2 * k, -2 * k, 2 * k, 150 * k, 176 * k, '#c4bcae');
   }
 
   // A felucca: brown hull and a white triangular sail (seen from both sides).
