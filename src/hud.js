@@ -155,6 +155,9 @@ const HUD = {
     this.button(ctx, b.difficulty, 'Computer drivers: ' + DIFFICULTIES[game.difficulty].label);
     this.button(ctx, b.controls, 'Controls: ' + CONTROL_MODES[game.controls]);
 
+    this.text(ctx, 'Version ' + GAME_VERSION, cx, 564, {
+      font: '12px system-ui, sans-serif', align: 'center', color: '#777', outline: false,
+    });
     this.text(ctx, 'Click a button — or press Enter to start, D for difficulty, T for controls', cx, 540, {
       font: '14px system-ui, sans-serif', align: 'center', color: '#999', outline: false,
     });
