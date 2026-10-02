@@ -24,16 +24,28 @@ function nextTeam(id, dir) {
   return TEAM_ORDER[((i < 0 ? 0 : i) + dir + TEAM_ORDER.length) % TEAM_ORDER.length];
 }
 
-// Kart settings for a player driving for a team.
-function playerSetup(playerIndex, teamId) {
+// The stripes for a paint style, in the kart's own colours.
+function stripesForStyle(style, trim, body) {
+  if (style === 'none') return [];
+  if (style === 'double') return [trim, body, trim];
+  if (style === 'triple') return [trim, body, trim, body, trim];
+  return undefined;   // 'single': one plain stripe
+}
+
+// Kart settings for a player driving for a team. `paint` (from the paint shop)
+// can change the colours, the stripes and the race number; anything left empty
+// (null) just uses the team's own.
+function playerSetup(playerIndex, teamId, paint) {
   const team = TEAMS[teamId] || TEAMS.burhanuddin;
+  const p = paint || {};
+  const body = p.body || team.body, trim = p.trim || team.trim;
   return {
     name: team.name,
     shortName: 'YOU',
-    body: team.body,
-    trim: team.trim,
-    stripes: team.stripes,
-    helmet: team.helmet,
-    number: 7,
+    body,
+    trim,
+    stripes: p.style ? stripesForStyle(p.style, trim, body) : team.stripes,
+    helmet: p.helmet || team.helmet,
+    number: p.number || 7,
   };
 }

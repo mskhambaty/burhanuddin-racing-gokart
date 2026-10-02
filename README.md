@@ -108,24 +108,61 @@ Your best lap on each track is saved as the track record.
 - Live race order at the top of the screen, full results table at the end
 - Lap timer, last/best lap, speedometer, saved track record
 - Career mode: prize money for every finishing position, and a garage with
-  4 upgrades × 5 levels that really change how the kart drives (see below)
+  4 upgrades × 10 levels (5 normal + 5 PRO) that really change how the kart drives (see below)
+- Choose 1–10 laps; paint & number shop; hire up to 2 teammates
 
 ## Upgrades
 
 ![The garage](screenshot-garage.png)
 
 The garage shows what each upgrade does in real numbers: what you have now, and what the next level gives.
+Every upgrade has **10 levels**. Levels 2–5 are the normal levels; levels 6–10 are **PRO** levels (the orange pips):
+they cost a lot more and each adds a little less, so there is always something to save up for.
 
-| Upgrade | Each level | Starts at | Fully upgraded |
-|---|---|---|---|
-| **Engine** | +10% top speed | 90 km/h | 126 km/h |
-| **Gearbox** | +25% acceleration | 0–60 km/h in 0.74 s | 0–60 km/h in 0.37 s (half the time) |
-| **Tyres** | +15% grip, and the kart turns 4% quicker | 100% | 160% |
-| **Brakes** | +20% braking | 60–0 km/h in 0.38 s | 60–0 km/h in 0.21 s |
+| Upgrade | Each normal level | Each PRO level | Level 1 | Level 5 | Level 10 |
+|---|---|---|---|---|---|
+| **Engine** | +10% top speed | +6% | 90 km/h | 126 km/h | **153 km/h** |
+| **Gearbox** | +25% acceleration | +15% | 0–60 in 0.74 s | 0.37 s | **0.24 s** |
+| **Tyres** | +15% grip, kart turns 4% quicker | +8% grip, +2% turning | 100% grip | 160% | **200%** |
+| **Brakes** | +20% braking | +12% | 60–0 in 0.38 s | 0.21 s | **0.16 s** |
 
-In my test races a fully upgraded kart did a lap about 20–25% quicker than a stock one
-(about 24 s → 18 s on the Giza Pyramids Circuit). The Engine makes the biggest difference
-to lap times; the Gearbox is for the start and for getting back up to speed after corners and sand.
+Prices: the normal levels cost 200–3,000 EGP; the PRO levels cost 2,000–18,000 EGP each.
+In my test races a fully upgraded kart (level 5) laps about 20–25% quicker than a stock one, and level 10 is
+a further ~10% quicker still, with no more wall or sand trouble.
+
+## Laps
+
+Choose **1 to 10 laps** with the LAPS picker in the garage (◀ ▶, or the ← → keys when it is highlighted).
+Shorter races pay proportionally less (a 5-lap race pays half of a 10-lap race), so a 1-lap race can't be used to farm money.
+Each track keeps a separate YOU-mode ghost for every race length.
+
+## Paint & number shop
+
+![Paint shop](screenshot-paint.png)
+
+Open it from the top of the garage. Point at a colour to see it on your kart; click to buy it and put it on.
+
+- **Body, stripe and helmet colours** — 14 colours at EGP 100 each, and 4 special finishes (Chrome, Gold plate, Carbon, Ruby) at EGP 1,500.
+  Once you have bought a colour you can use it anywhere for free. Your team's own colours are always free.
+- **Stripe style** — team style, single, none (free), double (EGP 300) or triple (EGP 500).
+- **Race number** — 1 to 99, EGP 100 for each new number. It shows on the number plates of your kart in all views.
+  Type the digits on the keyboard, or use the ± buttons.
+- "Back to team colours" undoes your paint for free (you keep the colours you bought). Your ghost keeps the paint you had when you set it.
+
+## Hiring drivers
+
+![Driver market](screenshot-market.png)
+
+Open the **Driver market** from the top of the garage. You have **2 seats**.
+
+- A hired driver races **next to you in your team colours** (with their own helmet and number) and bring **prize money to your team**.
+- You pay a **signing fee** once and a **salary after every race** (smaller for shorter races). Your money never goes below zero.
+- Stars decide how good they are: 1★ drives about 60 km/h and costs EGP 500 to sign (EGP 40 salary); 5★ drives about 108 km/h
+  and costs EGP 20,000 (EGP 400 salary).
+- Click a hired driver twice to let them go. Teammates only race against the computer (not in YOU mode).
+- The results screen shows the money breakdown: your prize, your teammates' prizes and the salaries.
+
+![Results with teammates](screenshot-results.png)
 
 ## Make it your own
 
@@ -143,7 +180,9 @@ to lap times; the Gearbox is for the start and for getting back up to speed afte
   in `src/kart.js`; computer drivers' numbers and colours are in `AI_DRIVERS` in `src/ai.js`.
 - **Change how the kart drives:** edit `KART_BASE_STATS` at the top of `src/kart.js`.
 - **Add a team or change team colours:** `TEAMS` in `src/teams.js`.
-- **Change prices, prizes or how much upgrades help:** everything is in `src/economy.js`.
+- **Change prices, prizes or how much upgrades help:** everything is in `src/economy.js`
+  (upgrade prices and sizes, paint colours and prices, the list of drivers you can hire).
+- **Add a driver, colour or paint style:** add a line to `DRIVERS`, `PAINT_COLORS` or `PAINT_STYLES` in `src/economy.js`.
 - **Rename the computer drivers or change their colours / skill:** `AI_DRIVERS` in `src/ai.js`.
 
 ## Code map
@@ -161,6 +200,7 @@ to lap times; the Gearbox is for the start and for getting back up to speed afte
 | `src/ai.js` | Computer drivers: racing line, braking, overtaking |
 | `src/economy.js` | Prices, prizes, upgrades and the saved career |
 | `src/garage.js` | The garage screen |
+| `src/shops.js` | The paint & number shop and the driver market |
 | `src/teams.js` | The teams players can pick and their kart colours |
 | `src/race.js` | Countdown, laps, checkpoints, positions, results |
 | `src/hud.js` | Lap panels, countdown, menus |

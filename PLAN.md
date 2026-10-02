@@ -74,10 +74,10 @@ cities (Dubai Marina, Riyadh, Amman/Petra desert, Alexandria seaside).
 ### Upgrades (each has levels 1 → 5)
 | Part | Improves | Price per level (EGP) |
 |---|---|---|
-| Engine | Top speed, +10% per level (90 → 126 km/h) | 400, 800, 1,500, 3,000 |
-| Gearbox | Acceleration, +25% per level (twice as quick at level 5) | 300, 600, 1,200, 2,500 |
-| Tyres | Grip +15% per level, and turns 4% quicker | 300, 600, 1,200, 2,500 |
-| Brakes | Braking, +20% per level | 200, 400, 800, 1,600 |
+| Engine | Top speed, +10% per level (90 → 126 km/h), then PRO levels 6–10 (→ 153 km/h) | 400, 800, 1,500, 3,000; PRO 4,000 … 18,000 |
+| Gearbox | Acceleration, +25% per level (twice as quick at level 5); PRO 6–10 | 300, 600, 1,200, 2,500; PRO 3,500 … 15,000 |
+| Tyres | Grip +15% per level, and turns 4% quicker; PRO 6–10 | 300, 600, 1,200, 2,500; PRO 3,500 … 15,000 |
+| Brakes | Braking, +20% per level; PRO 6–10 | 200, 400, 800, 1,600; PRO 2,000 … 9,000 |
 | Paint & number | Looks only | 100 each |
 
 ### Prize money (per race, 6 karts)
@@ -193,3 +193,5 @@ burhanuddin-racing-gokart/
 11. **Upgrades are big:** engine 90 → 126 km/h, gearbox twice the acceleration, shown in real numbers in the garage.
 12. **Races are 10 laps** on every track (`RACE_LAPS` in `src/util.js`). Ghosts saved from shorter races are not used.
 13. **Wide roads:** 90 px of asphalt (was 60), set by `ROAD_WIDTH` in `src/util.js`.
+14. **Money sinks (done):** PRO upgrade levels 6–10; the paint & number shop; hiring up to 2 teammates (signing fee + salary per race).
+15. **The player chooses 1–10 laps.** Prizes and salaries scale with the number of laps; each track and lap count has its own ghost.

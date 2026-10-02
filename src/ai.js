@@ -90,12 +90,14 @@ function prepareTrackForAI(track) {
 }
 
 class AIDriver {
-  constructor(racer, race, profile, difficulty) {
+  // `custom` ({ topKmh, pace, mistakes }) lets a hired teammate drive at their own
+  // level instead of the difficulty the computer drivers use.
+  constructor(racer, race, profile, difficulty, custom) {
     this.racer = racer;
     this.race = race;
     this.track = race.track;
     this.ai = prepareTrackForAI(race.track);
-    const d = DIFFICULTIES[difficulty] || DIFFICULTIES.medium;
+    const d = custom || DIFFICULTIES[difficulty] || DIFFICULTIES.medium;
     // Better drivers are a little faster and make fewer mistakes.
     this.pace = d.pace * (0.94 + profile.skill * 0.06);
     // Top speed in pixels per second (1 km/h = 1 / 0.36 px/s). Drivers vary by

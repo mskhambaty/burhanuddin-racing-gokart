@@ -17,12 +17,13 @@ const VIEW_LABELS = { cockpit: 'Steering wheel', chase: 'Rear', top: 'Top down' 
 const TOPDOWN_ZOOM = 0.85;
 
 const Game = {
-  screen: 'menu', // menu | garage | race | paused
+  screen: 'menu', // menu | garage | paint | market | race | paused
   track: TRACKS[Save.get('track', 'giza')] || TRACKS.giza,
   mode: Save.get('mode', 'race'), // race (vs the computer) | ghost (YOU mode: vs your best time)
   race: null,
   prize: null,    // prize money won in the last race
   difficulty: Save.get('difficulty', 'easy'),
+  laps: clamp(Math.round(Save.get('laps', RACE_LAPS)) || RACE_LAPS, 1, MAX_LAPS), // how many laps you race (1 to 10)
   controls: Save.get('controls', 'trackpad'),
   view: Save.get('view', 'cockpit'),
   camHeading: 0,  // the rear camera swings round smoothly behind the kart
@@ -74,13 +75,28 @@ const Game = {
 
   showGarage() {
     this.screen = 'garage';
-    Garage.selected = 6;
+    Garage.selected = Garage.raceIndex();
+  },
+
+  showPaintShop() {
+    this.screen = 'paint';
+    PaintShop.open();
+  },
+
+  showMarket() {
+    this.screen = 'market';
+    DriverMarket.open();
   },
 
   startRace() {
     this.warmUp(this.track); // a no-op if the garage already did it
-    const players = [{ team: Career.data.team, stats: Career.kartStats() }];
-    this.race = new Race(this.track, 1, this.difficulty, players, { ghostMode: this.mode === 'ghost' });
+    const players = [{ team: Career.data.team, stats: Career.kartStats(), paint: Career.data.paint }];
+    const ghostMode = this.mode === 'ghost';
+    this.race = new Race(this.track, 1, this.difficulty, players, {
+      ghostMode,
+      laps: this.laps,
+      teammates: ghostMode ? [] : Career.hiredDrivers(),   // your hired drivers race with you
+    });
     this.race.controlMode = this.controls;
     this.view = 'cockpit'; // every race starts in the steering wheel view (C switches)
     this.prize = null;
@@ -93,7 +109,9 @@ const Game = {
   payPrizeMoney() {
     if (this.screen !== 'race' || this.race.ghostMode) return;
     if (this.race.state !== 'finished' || this.prize != null) return;
-    this.prize = Career.recordRace(this.race.humans[0].position, this.difficulty);
+    const race = this.race;
+    const mates = race.racers.filter((r) => r.isTeammate).map((r) => ({ driver: r.driver, name: r.name, position: r.position }));
+    this.prize = Career.recordRace(race.humans[0].position, this.difficulty, mates, race.laps);
   },
 
   // The bigger tracks take a moment to draw the first time. Do it now (while
@@ -110,6 +128,12 @@ const Game = {
     Save.set('track', this.track.id);
     const track = this.track;
     setTimeout(() => this.warmUp(track), 40); // after the garage has redrawn
+  },
+
+  // Choose how many laps to race (dir = 1 more, -1 fewer; it wraps from 10 round to 1).
+  changeLaps(dir) {
+    this.laps = ((this.laps - 1 + dir + MAX_LAPS) % MAX_LAPS) + 1;
+    Save.set('laps', this.laps);
   },
 
   changeMode() {
@@ -162,6 +186,14 @@ const Game = {
       Garage.update(this, dt);
       return;
     }
+    if (this.screen === 'paint') {
+      PaintShop.update(this, dt);
+      return;
+    }
+    if (this.screen === 'market') {
+      DriverMarket.update(this, dt);
+      return;
+    }
 
     // Racing (or paused).
     const race = this.race;
@@ -201,6 +233,14 @@ const Game = {
 
     if (this.screen === 'garage') {
       Garage.draw(ctx, this);
+      return;
+    }
+    if (this.screen === 'paint') {
+      PaintShop.draw(ctx, this);
+      return;
+    }
+    if (this.screen === 'market') {
+      DriverMarket.draw(ctx, this);
       return;
     }
 

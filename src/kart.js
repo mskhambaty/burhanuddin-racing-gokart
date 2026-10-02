@@ -222,11 +222,23 @@ class Kart {
       ctx.fillStyle = c;
       ctx.fillRect(-1, y0, 14.4, sw);
     });
-    // Front number plate.
+    // Front number plate (the number is only drawn when the kart is big on screen).
     ctx.fillStyle = '#f2f1ec';
     ctx.beginPath();
     ctx.arc(8, 0, 2.5, 0, Math.PI * 2);
     ctx.fill();
+    const m = ctx.getTransform();
+    if (this.number && Math.hypot(m.a, m.b) > 3) {
+      ctx.save();
+      ctx.translate(8, 0.1);
+      ctx.rotate(Math.PI / 2);   // so it reads left to right when the kart points up
+      ctx.fillStyle = '#16161a';
+      ctx.font = 'bold ' + (this.number > 9 ? 2.6 : 3.2) + 'px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(String(this.number), 0, 0.1);
+      ctx.restore();
+    }
 
     // Side pods.
     for (const side of [-1, 1]) {

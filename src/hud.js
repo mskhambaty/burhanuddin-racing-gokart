@@ -44,7 +44,7 @@ const HUD = {
       });
     }
 
-    const lap = Math.min(racer.lapsDone + 1, race.track.laps);
+    const lap = Math.min(racer.lapsDone + 1, race.laps);
     const current = racer.finished ? racer.finishTime : race.time - racer.lapStart;
     const last = racer.lapTimes[racer.lapTimes.length - 1];
     const f = '15px ui-monospace, Menlo, Consolas, monospace';
@@ -55,7 +55,7 @@ const HUD = {
     if (racer.finished) {
       row('FINISHED', formatTime(racer.finishTime), y + 50, COLORS.goldLight);
     } else {
-      row('LAP', lap + ' / ' + race.track.laps, y + 50);
+      row('LAP', lap + ' / ' + race.laps, y + 50);
     }
     row('TIME', formatTime(race.state === 'countdown' ? 0 : current), y + 70);
     row('LAST', formatTime(last), y + 90);
@@ -137,7 +137,7 @@ const HUD = {
     this.text(ctx, 'CAIRO KARTING', cx, 242, {
       font: 'bold 20px system-ui, sans-serif', align: 'center', color: '#fff', outline: false,
     });
-    this.text(ctx, game.track.name + ' · ' + game.track.laps + ' laps', cx, 292, {
+    this.text(ctx, game.track.name + ' · ' + game.laps + (game.laps === 1 ? ' lap' : ' laps'), cx, 292, {
       font: '18px system-ui, sans-serif', align: 'center', color: '#ddd', outline: false,
     });
     this.text(ctx, 'Track record: ' + formatTime(Save.get(game.track.recordKey, null)), cx, 318, {
@@ -354,20 +354,22 @@ const HUD = {
       ctx.fillStyle = r.kart.body;
       ctx.fillRect(x + 16, y + 7, 5, 12);
       this.text(ctx, r.kart.shortName, x + 25, y + 18, {
-        font: (r.isHuman ? 'bold ' : '') + '13px system-ui, sans-serif',
-        color: r.isHuman ? COLORS.goldLight : '#eee', outline: false,
+        font: (r.isHuman || r.isTeammate ? 'bold ' : '') + '13px system-ui, sans-serif',
+        color: r.isHuman ? COLORS.goldLight : r.isTeammate ? '#e9cf8c' : '#eee', outline: false,
       });
     });
   },
 
   // prize: money won (career mode) or null.
+  // prize: the money breakdown from Career.recordRace (or null).
   results(ctx, race, prize) {
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
     const cx = GAME_WIDTH / 2;
     const rows = race.standings();
     const rowH = 40;
-    const h = 170 + rows.length * rowH;
+    const hasMates = !!prize && prize.salaries.length > 0;
+    const h = 170 + rows.length * rowH + (hasMates ? 30 : 0);
     const top = GAME_HEIGHT / 2 - h / 2;
     this.panel(ctx, cx - 320, top, 640, h);
 
@@ -376,7 +378,7 @@ const HUD = {
     if (race.humans.length === 1) {
       const me = race.humans[0];
       heading = me.position === 1 ? 'YOU WIN!' : 'You finished ' + ordinal(me.position);
-      if (prize != null) heading += '  +' + formatMoney(prize);
+      if (prize) heading += '  ' + (prize.net >= 0 ? '+' : '−') + formatMoney(Math.abs(prize.net));
     } else {
       heading = winner.name + ' WINS!';
     }
@@ -390,8 +392,8 @@ const HUD = {
 
     rows.forEach((r, i) => {
       const y = top + 116 + i * rowH;
-      if (r.isHuman) {
-        ctx.fillStyle = 'rgba(212,160,23,0.18)';
+      if (r.isHuman || r.isTeammate) {
+        ctx.fillStyle = r.isHuman ? 'rgba(212,160,23,0.18)' : 'rgba(212,160,23,0.08)';
         ctx.fillRect(cx - 305, y - 24, 610, rowH - 6);
       }
       this.text(ctx, ordinal(i + 1), cx - 290, y, {
@@ -399,14 +401,14 @@ const HUD = {
       });
       ctx.fillStyle = r.kart.body;
       ctx.fillRect(cx - 238, y - 15, 8, 18);
-      this.text(ctx, r.name, cx - 220, y, {
-        maxWidth: 260,
-        font: 'bold 20px system-ui, sans-serif', color: r.isHuman ? COLORS.goldLight : '#fff', outline: false,
+      this.text(ctx, r.name + (r.isTeammate ? '  (your team)' : ''), cx - 220, y, {
+        maxWidth: 270,
+        font: 'bold 20px system-ui, sans-serif', color: r.isHuman ? COLORS.goldLight : r.isTeammate ? '#e9cf8c' : '#fff', outline: false,
       });
       this.text(ctx, formatTime(r.bestLap), cx + 170, y, {
         font: '16px ' + mono, align: 'right', color: '#bbb', outline: false,
       });
-      const lapsLeft = race.track.laps - r.lapsDone;
+      const lapsLeft = race.laps - r.lapsDone;
       const time = r.finished ? formatTime(r.finishTime) : lapsLeft + ' lap' + (lapsLeft > 1 ? 's' : '') + ' to go';
       this.text(ctx, time, cx + 290, y, {
         font: 'bold 17px ' + mono, align: 'right', color: r.finished ? COLORS.goldLight : '#888', outline: false,
@@ -414,6 +416,11 @@ const HUD = {
     });
 
     const footY = top + h - 22;
+    if (hasMates) {
+      const mates = prize.teamPrizes.reduce((a, t) => a + t.amount, 0);
+      this.text(ctx, 'Your prize ' + formatMoney(prize.prize) + '  ·  teammates +' + formatMoney(mates) + '  ·  salaries −' + formatMoney(prize.pay),
+        cx, footY - (race.newRecord ? 52 : 26), { font: '14px ' + mono, align: 'center', color: '#cfd8c9', outline: false, maxWidth: 600 });
+    }
     if (race.newRecord) {
       this.text(ctx, '★ NEW TRACK RECORD ★', cx, footY - 26, {
         font: 'bold 18px system-ui, sans-serif', align: 'center', color: '#5dff7a', outline: false,
