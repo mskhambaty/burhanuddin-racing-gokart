@@ -5,7 +5,7 @@ const ECONOMY = {
   startingMoney: 500,
 
   // Prize money (EGP) for 1st, 2nd, 3rd, 4th, 5th, 6th.
-  prizes: [1000, 600, 400, 200, 100, 50],
+  prizes: [1000, 500, 300, 150, 100, 50],
 
   // Harder computer drivers = bigger prizes.
   difficultyBonus: { easy: 1, medium: 1.5, hard: 2 },

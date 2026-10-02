@@ -2,7 +2,7 @@
 
 // Bump this (and the ?v= numbers in index.html) whenever you release a change.
 // It's shown on the title screen so you can tell which version you are playing.
-const GAME_VERSION = '13  ·  2 Oct 2026';
+const GAME_VERSION = '14  ·  2 Oct 2026';
 
 // How many laps a race is: the player picks 1 to MAX_LAPS in the garage. RACE_LAPS is
 // the number you start with.

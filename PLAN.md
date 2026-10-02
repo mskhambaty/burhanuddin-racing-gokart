@@ -83,7 +83,7 @@ cities (Dubai Marina, Riyadh, Amman/Petra desert, Alexandria seaside).
 ### Prize money (per race, 6 karts)
 | Place | 1st | 2nd | 3rd | 4th | 5th | 6th |
 |---|---|---|---|---|---|---|
-| Prize (EGP) | 1,000 | 600 | 400 | 200 | 100 | 50 |
+| Prize (EGP) | 1,000 | 500 | 300 | 150 | 100 | 50 |
 
 Harder tracks multiply prizes (e.g. ×1.5, ×2) and the computer drivers get faster.
 Numbers will be tuned by playtesting — they all live in one file so they are easy to change.
