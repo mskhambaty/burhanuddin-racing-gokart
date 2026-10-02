@@ -2,10 +2,14 @@
 
 // Bump this (and the ?v= numbers in index.html) whenever you release a change.
 // It's shown on the title screen so you can tell which version you are playing.
-const GAME_VERSION = '11  ·  2 Oct 2026';
+const GAME_VERSION = '12  ·  2 Oct 2026';
 
 // How many laps a race is. Every track uses this (a track can also set its own `laps`).
 const RACE_LAPS = 10;
+
+// How wide the road is (the asphalt, in pixels; a kart is about 15 wide). The red
+// and white kerbs add 6 on each side. A track can also set its own `roadWidth`.
+const ROAD_WIDTH = 90;
 
 // The screen is always 1280 x 720. The world (the map the tracks are built on)
 // is TRACK_SCALE times bigger in each direction, so a bigger TRACK_SCALE means

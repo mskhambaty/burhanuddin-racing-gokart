@@ -192,3 +192,4 @@ burhanuddin-racing-gokart/
 10. **Big tracks:** the map is `TRACK_SCALE` (2) times bigger than one screen; the top-down camera follows the kart.
 11. **Upgrades are big:** engine 90 → 126 km/h, gearbox twice the acceleration, shown in real numbers in the garage.
 12. **Races are 10 laps** on every track (`RACE_LAPS` in `src/util.js`). Ghosts saved from shorter races are not used.
+13. **Wide roads:** 90 px of asphalt (was 60), set by `ROAD_WIDTH` in `src/util.js`.

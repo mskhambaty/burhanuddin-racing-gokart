@@ -106,7 +106,7 @@ class Track {
     this.name = def.name;
     this.subtitle = def.subtitle || '';
     this.laps = def.laps || RACE_LAPS;
-    this.roadWidth = def.roadWidth || 60;      // asphalt width
+    this.roadWidth = def.roadWidth || ROAD_WIDTH; // asphalt width
     this.kerbWidth = 6;                        // red/white kerb on each side
     this.runoff = def.runoff || 36;            // sand between kerb and tyre wall
     this.sectors = def.sectors || 12;          // checkpoints per lap

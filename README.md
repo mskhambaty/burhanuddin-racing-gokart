@@ -44,6 +44,7 @@ A minimap in the corner shows the whole track in the 3D views.
 ## Tracks
 
 Pick the track in the garage (◀ ▶ or the ← → keys). Each track keeps its own best lap.
+The roads are wide (90 pixels of asphalt, about six karts across), so there is room to race side by side and overtake.
 The tracks are big: a lap takes about 25–50 seconds (a race is 10 laps, so about 4–8 minutes), and the
 map is four screens big, so in the top-down view the camera follows your kart.
 
@@ -128,6 +129,7 @@ to lap times; the Gearbox is for the start and for getting back up to speed afte
 
 ## Make it your own
 
+- **Make the roads wider or narrower:** `ROAD_WIDTH` in `src/util.js` (90 now; it was 60). A track can also set its own `roadWidth`.
 - **Make all the tracks bigger or smaller:** `TRACK_SCALE` in `src/util.js` (2 = twice as long,
   3 = three times, 1 = the original one-screen size). Records and ghosts are kept separately for each size.
 - **Change a track:** edit the corners in `src/tracks/giza.js`, `cairo.js` or `nile.js` and reload the page.
