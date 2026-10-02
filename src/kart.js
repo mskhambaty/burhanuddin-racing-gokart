@@ -6,7 +6,7 @@
 // Later, garage upgrades will change these stats.
 const KART_BASE_STATS = {
   topSpeed: 250,   // pixels per second on asphalt
-  accel: 230,      // how hard the engine pushes
+  accel: 270,      // how hard the engine pushes
   brake: 420,      // how hard the brakes slow you down
   grip: 9,         // how quickly sideways sliding stops (higher = more grip)
   steer: 2.9,      // how fast the kart turns (radians per second)
@@ -82,8 +82,9 @@ class Kart {
 
     // Engine and brakes.
     if (controls.throttle && !controls.brake) {
-      // Pushes less the closer you are to top speed.
-      forward += s.accel * dt * Math.max(0, 1 - forward / topSpeed);
+      // Pulls hard right up to near top speed (it only fades in the last stretch).
+      const f = forward / topSpeed;
+      forward += s.accel * dt * Math.max(0, 1 - f * f);
     } else if (controls.brake) {
       if (forward > 5) {
         forward = Math.max(0, forward - s.brake * dt);

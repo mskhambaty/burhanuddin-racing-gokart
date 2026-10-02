@@ -74,8 +74,8 @@ Pick the mode next to the track in the garage.
   | Medium | about 78 km/h | ×1.5 |
   | Hard | about 100 km/h | ×2 |
 
-  Your own kart starts at 90 km/h and reaches 104 km/h with a fully upgraded engine,
-  so on Hard you'll need upgrades to keep up.
+  Your own kart starts at 90 km/h and reaches 126 km/h with a fully upgraded engine,
+  so on Hard you'll need some upgrades to keep up on the straights.
 - **YOU (race your ghost)** — just you against a see-through copy of your best race
   on that track, driving *exactly* the way you drove it (same line, same speed, same
   mistakes). A gauge at the top shows how far ahead (green) or behind (red) your ghost
@@ -107,7 +107,24 @@ Your best lap on each track is saved as the track record.
 - Live race order at the top of the screen, full results table at the end
 - Lap timer, last/best lap, speedometer, saved track record
 - Career mode: prize money for every finishing position, and a garage with
-  4 upgrades × 5 levels that really change how the kart drives
+  4 upgrades × 5 levels that really change how the kart drives (see below)
+
+## Upgrades
+
+![The garage](screenshot-garage.png)
+
+The garage shows what each upgrade does in real numbers: what you have now, and what the next level gives.
+
+| Upgrade | Each level | Starts at | Fully upgraded |
+|---|---|---|---|
+| **Engine** | +10% top speed | 90 km/h | 126 km/h |
+| **Gearbox** | +25% acceleration | 0–60 km/h in 0.74 s | 0–60 km/h in 0.37 s (half the time) |
+| **Tyres** | +15% grip, and the kart turns 4% quicker | 100% | 160% |
+| **Brakes** | +20% braking | 60–0 km/h in 0.38 s | 60–0 km/h in 0.21 s |
+
+In my test races a fully upgraded kart did a lap about 20–25% quicker than a stock one
+(about 24 s → 18 s on the Giza Pyramids Circuit). The Engine makes the biggest difference
+to lap times; the Gearbox is for the start and for getting back up to speed after corners and sand.
 
 ## Make it your own
 

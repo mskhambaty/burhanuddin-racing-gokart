@@ -12,13 +12,20 @@ const ECONOMY = {
 
   maxLevel: 5,
 
-  // Each upgrade improves one kart stat by `perLevel` (0.05 = 5%) per level.
+  // Each upgrade improves one kart stat by `perLevel` (0.25 = 25% more) for
+  // every level you buy, so a fully upgraded part is 4 x perLevel better than
+  // the one you start with. `also` upgrades a second stat at the same time.
   // `prices` are the cost of level 2, 3, 4 and 5.
+  //
+  //   Engine   +10% top speed per level      -> 90 km/h up to 126 km/h
+  //   Gearbox  +25% acceleration per level   -> twice as quick off the line at level 5
+  //   Tyres    +15% grip per level, and the kart turns 4% quicker
+  //   Brakes   +20% braking per level        -> stops in about half the distance
   upgrades: {
-    engine:  { name: 'Engine',  improves: 'Top speed',    stat: 'topSpeed', perLevel: 0.04, prices: [400, 800, 1500, 3000] },
-    gearbox: { name: 'Gearbox', improves: 'Acceleration', stat: 'accel',    perLevel: 0.08, prices: [300, 600, 1200, 2500] },
-    tyres:   { name: 'Tyres',   improves: 'Grip',         stat: 'grip',     perLevel: 0.08, prices: [300, 600, 1200, 2500] },
-    brakes:  { name: 'Brakes',  improves: 'Braking',      stat: 'brake',    perLevel: 0.10, prices: [200, 400, 800, 1600] },
+    engine:  { name: 'Engine',  improves: 'Top speed',    stat: 'topSpeed', perLevel: 0.10, prices: [400, 800, 1500, 3000] },
+    gearbox: { name: 'Gearbox', improves: 'Acceleration', stat: 'accel',    perLevel: 0.25, prices: [300, 600, 1200, 2500] },
+    tyres:   { name: 'Tyres',   improves: 'Grip',         stat: 'grip',     perLevel: 0.15, also: { steer: 0.04 }, prices: [300, 600, 1200, 2500] },
+    brakes:  { name: 'Brakes',  improves: 'Braking',      stat: 'brake',    perLevel: 0.20, prices: [200, 400, 800, 1600] },
   },
 };
 
@@ -106,7 +113,30 @@ function statsForUpgrades(upgrades) {
   const stats = Object.assign({}, KART_BASE_STATS);
   for (const key of UPGRADE_ORDER) {
     const u = ECONOMY.upgrades[key];
-    stats[u.stat] = KART_BASE_STATS[u.stat] * (1 + u.perLevel * (upgrades[key] - 1));
+    const steps = upgrades[key] - 1;
+    stats[u.stat] = KART_BASE_STATS[u.stat] * (1 + u.perLevel * steps);
+    for (const [stat, perLevel] of Object.entries(u.also || {})) {
+      stats[stat] = KART_BASE_STATS[stat] * (1 + perLevel * steps);
+    }
   }
   return stats;
+}
+
+// Seconds to get from a standstill up to `kmh`, for a kart with these stats
+// (worked out from the same rule the kart uses to accelerate).
+function secondsToReach(stats, kmh) {
+  const v = Math.min(kmh / 0.36, stats.topSpeed * 0.995), T = stats.topSpeed;
+  return (T / (2 * stats.accel)) * Math.log((T + v) / (T - v));
+}
+
+// What an upgrade does, in numbers a player can picture. `level` is the level of
+// that one upgrade; the others stay as they are now.
+function upgradeReadout(key, level) {
+  const upgrades = Object.assign({}, Career.data.upgrades);
+  upgrades[key] = level;
+  const s = statsForUpgrades(upgrades);
+  if (key === 'engine') return { label: 'Top speed', value: Math.round(s.topSpeed * 0.36) + ' km/h' };
+  if (key === 'gearbox') return { label: '0–60 km/h', value: secondsToReach(s, 60).toFixed(2) + ' s' };
+  if (key === 'tyres') return { label: 'Grip', value: Math.round((s.grip / KART_BASE_STATS.grip) * 100) + '%' };
+  return { label: '60–0 km/h', value: (60 / 0.36 / s.brake).toFixed(2) + ' s' };
 }

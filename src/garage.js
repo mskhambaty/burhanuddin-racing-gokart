@@ -190,13 +190,13 @@ const Garage = {
   },
 
   drawStats(ctx) {
-    const stats = Career.kartStats();
     const rows = [
-      ['Top speed', Math.round(stats.topSpeed * 0.36) + ' km/h', 'engine'],
+      ['Top speed', null, 'engine'],
       ['Acceleration', null, 'gearbox'],
       ['Grip', null, 'tyres'],
       ['Braking', null, 'brakes'],
     ];
+    rows.forEach((r) => { r[1] = upgradeReadout(r[2], Career.level(r[2])).value; });
     const x = 60, w = 420;
     rows.forEach(([label, value, key], i) => {
       const y = 450 + i * 50;
@@ -230,9 +230,23 @@ const Garage = {
     this.drawButtonBox(ctx, b, on);
 
     HUD.text(ctx, u.name, b.x + 24, b.y + 30, { font: 'bold 22px system-ui, sans-serif', outline: false });
-    HUD.text(ctx, u.improves + '  +' + Math.round(u.perLevel * 100) + '% per level', b.x + 24, b.y + 54, {
-      font: '14px system-ui, sans-serif', color: '#999', outline: false,
+    const now = upgradeReadout(b.key, lvl);
+    const next = price == null ? null : upgradeReadout(b.key, lvl + 1);
+    // "Top speed: 99 km/h  →  108 km/h" (what you have now, then what the next level gives)
+    const nowText = now.label + ':  ' + now.value, nextText = next ? '→  ' + next.value : '';
+    ctx.font = '13px system-ui, sans-serif';
+    const nowW = ctx.measureText(nowText).width;
+    ctx.font = 'bold 13px system-ui, sans-serif';
+    const nextW = next ? ctx.measureText(nextText).width + 8 : 0;
+    const squeeze = Math.min(1, 218 / (nowW + nextW));
+    HUD.text(ctx, nowText, b.x + 24, b.y + 54, {
+      font: '13px system-ui, sans-serif', color: '#bbb', outline: false, maxWidth: nowW * squeeze,
     });
+    if (next) {
+      HUD.text(ctx, nextText, b.x + 24 + (nowW + 8) * squeeze, b.y + 54, {
+        font: 'bold 13px system-ui, sans-serif', color: '#5dff7a', outline: false, maxWidth: (nextW - 8) * squeeze,
+      });
+    }
 
     // Level pips.
     for (let i = 0; i < ECONOMY.maxLevel; i++) {

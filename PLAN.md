@@ -74,10 +74,10 @@ cities (Dubai Marina, Riyadh, Amman/Petra desert, Alexandria seaside).
 ### Upgrades (each has levels 1 → 5)
 | Part | Improves | Price per level (EGP) |
 |---|---|---|
-| Engine | Top speed | 400, 800, 1,500, 3,000 |
-| Gearbox | Acceleration | 300, 600, 1,200, 2,500 |
-| Tyres | Grip | 300, 600, 1,200, 2,500 |
-| Brakes | Braking | 200, 400, 800, 1,600 |
+| Engine | Top speed, +10% per level (90 → 126 km/h) | 400, 800, 1,500, 3,000 |
+| Gearbox | Acceleration, +25% per level (twice as quick at level 5) | 300, 600, 1,200, 2,500 |
+| Tyres | Grip +15% per level, and turns 4% quicker | 300, 600, 1,200, 2,500 |
+| Brakes | Braking, +20% per level | 200, 400, 800, 1,600 |
 | Paint & number | Looks only | 100 each |
 
 ### Prize money (per race, 6 karts)
@@ -190,3 +190,4 @@ burhanuddin-racing-gokart/
    Set by any finished race; per track; no prizes.
 9. Computer-driver top speeds: **Easy ≈ 60, Medium ≈ 78, Hard ≈ 100 km/h.**
 10. **Big tracks:** the map is `TRACK_SCALE` (2) times bigger than one screen; the top-down camera follows the kart.
+11. **Upgrades are big:** engine 90 → 126 km/h, gearbox twice the acceleration, shown in real numbers in the garage.
