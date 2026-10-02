@@ -44,7 +44,7 @@ A minimap in the corner shows the whole track in the 3D views.
 ## Tracks
 
 Pick the track in the garage (◀ ▶ or the ← → keys). Each track keeps its own best lap.
-The tracks are big: a lap takes about 25–50 seconds (a race is 3 laps), and the
+The tracks are big: a lap takes about 25–50 seconds (a race is 10 laps, so about 4–8 minutes), and the
 map is four screens big, so in the top-down view the camera follows your kart.
 
 | Track | What it's like |
@@ -92,7 +92,7 @@ Your best lap on each track is saved as the track record.
 ![Rear view](screenshot-rear.png)
 
 
-- Three Cairo tracks: Giza Pyramids Circuit, Cairo City Circuit and Nile Corniche (3 laps each)
+- Three Cairo tracks: Giza Pyramids Circuit, Cairo City Circuit and Nile Corniche (10 laps each)
 - YOU mode: race the ghost of your own best time on each track
 - Real-looking go-karts: round tyres (the front ones turn with the steering), a nose cone, side pods,
   seat, engine and exhaust, race-number plates, and a driver with arms, steering wheel and a helmet with a visor

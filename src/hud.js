@@ -321,7 +321,7 @@ const HUD = {
       this.text(ctx, sub, cx - 260, y + 26, { font: '13px ' + mono, color: '#aaa', outline: false });
     };
     row(top + 150, 'YOU', me.kart.body, formatTime(me.finishTime),
-      'Laps: ' + me.lapTimes.map(formatTime).join('  ·  '), !(g && g.hadGhost && !g.beatGhost));
+      'Best lap ' + formatTime(me.bestLap) + '  ·  average lap ' + formatTime(me.finishTime / Math.max(1, me.lapTimes.length)), !(g && g.hadGhost && !g.beatGhost));
     if (g && g.hadGhost) {
       row(top + 230, 'GHOST (your best)', race.ghost ? race.ghost.kart.body : '#ccc', formatTime(g.ghostTotal),
         'The best race you had before this one', g.hadGhost && !g.beatGhost);

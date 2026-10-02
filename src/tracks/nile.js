@@ -9,7 +9,7 @@ TRACKS.nile = new Track({
   id: 'nile',
   name: 'Nile Corniche',
   subtitle: 'Along the Nile, Cairo',
-  laps: 3,
+  laps: RACE_LAPS,
   seed: 1971,
   colors: {
     desert: '#a9bd78',        // gardens along the river

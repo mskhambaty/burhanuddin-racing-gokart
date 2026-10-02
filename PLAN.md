@@ -10,7 +10,7 @@ and is built in small steps so it can grow over time.
 ## 1. The game in one paragraph
 
 You start with a slow kart, 500 EGP, and a dream. You enter a race on a Cairo
-track, drive 3 laps against 5 computer drivers, and get paid depending on where
+track, drive 10 laps against 5 computer drivers, and get paid depending on where
 you finish. Back in the garage you buy a better engine, grippier tyres, or hire
 a teammate who races alongside you and brings in extra money. Win enough races
 and you unlock new tracks, from the Giza Pyramids to the streets of Downtown.
@@ -20,14 +20,14 @@ and you unlock new tracks, from the Giza Pyramids to the streets of Downtown.
 ```
   ┌──────────┐     pick a race      ┌──────────┐
   │  GARAGE  │ ───────────────────▶ │   RACE   │
-  │ upgrade  │                      │ 3 laps   │
+  │ upgrade  │                      │ 10 laps  │
   │ hire     │ ◀─────────────────── │ vs AI    │
   └──────────┘   prize money (EGP)  └──────────┘
 ```
 
 1. **Garage** – see your money, kart stats, and team. Buy upgrades or hire drivers.
 2. **Pick a race** – choose a track (locked tracks need a certain number of wins or trophies).
-3. **Race** – countdown, 3 laps, finish position decides the prize.
+3. **Race** – countdown, 10 laps, finish position decides the prize.
 4. **Results** – prize money added, teammates' earnings added, salaries paid.
 5. Back to the garage. Progress saves automatically.
 
@@ -191,3 +191,4 @@ burhanuddin-racing-gokart/
 9. Computer-driver top speeds: **Easy ≈ 60, Medium ≈ 78, Hard ≈ 100 km/h.**
 10. **Big tracks:** the map is `TRACK_SCALE` (2) times bigger than one screen; the top-down camera follows the kart.
 11. **Upgrades are big:** engine 90 → 126 km/h, gearbox twice the acceleration, shown in real numbers in the garage.
+12. **Races are 10 laps** on every track (`RACE_LAPS` in `src/util.js`). Ghosts saved from shorter races are not used.

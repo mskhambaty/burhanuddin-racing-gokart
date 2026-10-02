@@ -8,7 +8,7 @@ TRACKS.cairo = new Track({
   id: 'cairo',
   name: 'Cairo City Circuit',
   subtitle: 'Downtown, Cairo',
-  laps: 3,
+  laps: RACE_LAPS,
   seed: 1952,
   colors: {
     desert: '#c9bda5',        // paving stones between the buildings

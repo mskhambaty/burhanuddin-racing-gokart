@@ -9,7 +9,7 @@ TRACKS.giza = new Track({
   id: 'giza',
   name: 'Giza Pyramids Circuit',
   subtitle: 'Giza, Cairo',
-  laps: 3,
+  laps: RACE_LAPS,
   seed: 2026,
   points: scaleControlPoints([
     [800, 600],  // start / finish straight (driving left)
