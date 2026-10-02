@@ -7,11 +7,11 @@
 //  4. makes the odd small mistake (more on Easy, fewer on Hard).
 
 const AI_DRIVERS = [
-  { name: 'Omar',    body: '#1f6fd1', trim: '#ffffff', helmet: '#ffffff', skill: 0.9 },
-  { name: 'Mariam',  body: '#8e44ad', trim: '#ffffff', helmet: '#f5d0fe', skill: 1.0 },
-  { name: 'Youssef', body: '#1f9d55', trim: '#111111', helmet: '#111111', skill: 0.8 },
-  { name: 'Nour',    body: '#e84393', trim: '#ffffff', helmet: '#ffffff', skill: 0.85 },
-  { name: 'Karim',   body: '#9acd32', trim: '#111111', helmet: '#111111', skill: 0.75 },
+  { name: 'Omar', number: 14,    body: '#1f6fd1', trim: '#ffffff', helmet: '#ffffff', skill: 0.9 },
+  { name: 'Mariam', number: 27,  body: '#8e44ad', trim: '#ffffff', helmet: '#f5d0fe', skill: 1.0 },
+  { name: 'Youssef', number: 8, body: '#1f9d55', trim: '#111111', helmet: '#111111', skill: 0.8 },
+  { name: 'Nour', number: 33,    body: '#e84393', trim: '#ffffff', helmet: '#ffffff', skill: 0.85 },
+  { name: 'Karim', number: 52,   body: '#9acd32', trim: '#111111', helmet: '#111111', skill: 0.75 },
 ];
 
 // How good the computer drivers are.

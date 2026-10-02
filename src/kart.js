@@ -30,6 +30,7 @@ class Kart {
     this.trim = opts.trim;       // stripe colour
     this.stripes = opts.stripes; // optional: several thin stripes instead of one
     this.helmet = opts.helmet;
+    this.number = opts.number || 0; // race number on the plates
     this.stats = Object.assign({}, KART_BASE_STATS, opts.stats || {});
     this.reset(opts.x, opts.y, opts.heading);
   }
@@ -153,64 +154,113 @@ class Kart {
     ];
   }
 
+  // The kart seen from above (also used on the garage turntable).
   draw(ctx) {
-    const L = KART_LENGTH, W = KART_WIDTH;
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.heading);
+    const body = this.body, trim = this.trim;
+    const poly = (pts, color) => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.closePath();
+      ctx.fill();
+    };
+    const rrect = (x, y, w, h, r, color) => {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.roundRect(x, y, w, h, r);
+      ctx.fill();
+    };
 
     // Shadow.
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.fillRect(-L / 2 + 2, -W / 2 + 3, L, W);
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.beginPath();
+    ctx.ellipse(1.5, 2.5, 14, 8.6, 0, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Wheels (front ones turn with the steering).
-    ctx.fillStyle = '#111';
-    const wheel = (x, y, angle) => {
+    // Floor, bumpers and rear axle.
+    rrect(-11, -5.2, 20, 10.4, 2, '#1d1d21');
+    rrect(-13.4, -6.6, 1.8, 13.2, 0.9, '#2a2a2f');     // rear bumper
+    rrect(12.4, -5.6, 1.8, 11.2, 0.9, '#2a2a2f');      // front bumper
+    ctx.fillStyle = '#3a3a40';
+    ctx.fillRect(-8.6, -6, 1, 12);
+
+    // Wheels (front ones turn with the steering): tyre, then a lighter hub.
+    const steerAngle = this.steerVisual * 0.45;
+    const wheel = (x, y, len, wid, angle) => {
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(angle);
-      ctx.fillRect(-3.5, -2, 7, 4);
+      rrect(-len / 2, -wid / 2, len, wid, wid * 0.35, '#141417');
+      rrect(-len * 0.28, -wid * 0.3, len * 0.56, wid * 0.6, wid * 0.2, '#2a2a2f');
       ctx.restore();
     };
-    const steerAngle = this.steerVisual * 0.4;
-    wheel(L * 0.33, -W / 2, steerAngle);
-    wheel(L * 0.33, W / 2, steerAngle);
-    wheel(-L * 0.35, -W / 2 - 0.5, 0);
-    wheel(-L * 0.35, W / 2 + 0.5, 0);
+    wheel(8.8, -6.1, 7, 3.4, steerAngle);
+    wheel(8.8, 6.1, 7, 3.4, steerAngle);
+    wheel(-8.2, -6.4, 8.6, 5.2, 0);
+    wheel(-8.2, 6.4, 8.6, 5.2, 0);
 
-    // Body.
-    ctx.fillStyle = this.body;
+    // Nose cone: rounded wedge in team colour, stripes along it.
+    ctx.fillStyle = body;
     ctx.beginPath();
-    ctx.moveTo(L / 2, -W * 0.28);
-    ctx.lineTo(L / 2, W * 0.28);
-    ctx.lineTo(L * 0.1, W * 0.42);
-    ctx.lineTo(-L / 2, W * 0.42);
-    ctx.lineTo(-L / 2, -W * 0.42);
-    ctx.lineTo(L * 0.1, -W * 0.42);
+    ctx.moveTo(1, -5);
+    ctx.lineTo(6, -4.5);
+    ctx.quadraticCurveTo(11.5, -3.6, 13.2, -1.6);
+    ctx.quadraticCurveTo(13.8, 0, 13.2, 1.6);
+    ctx.quadraticCurveTo(11.5, 3.6, 6, 4.5);
+    ctx.lineTo(1, 5);
     ctx.closePath();
     ctx.fill();
+    const stripes = this.stripes || [trim];
+    const sw = this.stripes ? 0.75 : 1.5;
+    stripes.forEach((c, i) => {
+      const y0 = (i - stripes.length / 2) * sw;
+      ctx.fillStyle = c;
+      ctx.fillRect(-1, y0, 14.4, sw);
+    });
+    // Front number plate.
+    ctx.fillStyle = '#f2f1ec';
+    ctx.beginPath();
+    ctx.arc(8, 0, 2.5, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Racing stripe(s) and front bumper.
-    if (this.stripes) {
-      const sw = 1.3;
-      this.stripes.forEach((c, i) => {
-        ctx.fillStyle = c;
-        ctx.fillRect(-L / 2, (i - this.stripes.length / 2) * sw, L, sw);
-      });
-    } else {
-      ctx.fillStyle = this.trim;
-      ctx.fillRect(-L / 2, -1.5, L, 3);
+    // Side pods.
+    for (const side of [-1, 1]) {
+      poly([[-5.5, side * 3.7], [-1, side * 3.5], [5, side * 3.5], [5.5, side * 5.3], [-1, side * 6.9], [-5.5, side * 6.5]], body);
     }
-    ctx.fillStyle = this.trim;
-    ctx.fillRect(L / 2 - 2, -W * 0.3, 2, W * 0.6);
 
-    // Driver's helmet.
+    // Engine and exhaust.
+    rrect(-11.6, 1.8, 4.6, 3.8, 0.8, '#9aa0a6');
+    rrect(-12.8, 3.1, 1.8, 1.2, 0.5, '#c9cdd1');
+
+    // Seat, then the driver: shoulders and arms in the team suit, helmet on top.
+    poly([[-9.5, -3.6], [-6, -3.8], [-3, -2.8], [-3, 2.8], [-6, 3.8], [-9.5, 3.6]], '#1d1d21');
+    rrect(-6.4, -4.1, 4.8, 8.2, 2, trim);                          // shoulders
+    ctx.strokeStyle = trim;
+    ctx.lineWidth = 1.7;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(-3.8, -3); ctx.lineTo(3.4, -2.1);
+    ctx.moveTo(-3.8, 3); ctx.lineTo(3.4, 2.1);
+    ctx.stroke();
+    rrect(2.6, -2.6, 2, 5.2, 0.8, '#111114');                      // steering wheel
     ctx.fillStyle = this.helmet;
     ctx.beginPath();
-    ctx.arc(-L * 0.12, 0, 3.6, 0, Math.PI * 2);
+    ctx.arc(-3.6, 0, 3.1, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = 'rgba(0,0,0,0.6)';
-    ctx.fillRect(-L * 0.12 + 1, -2, 2, 4); // visor
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath();
+    ctx.arc(-3.2, 0.5, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = trim;
+    ctx.fillRect(-6.7, -0.6, 6.2, 1.2);                            // helmet stripe
+    ctx.fillStyle = '#0c0f14';
+    ctx.beginPath();
+    ctx.ellipse(-1.5, 0, 1.2, 2, 0, 0, Math.PI * 2);               // visor
+    ctx.fill();
 
     ctx.restore();
   }

@@ -266,7 +266,7 @@ class Scene {
   }
 
   // A flat face given by 3D corner points, with an outward direction (normal).
-  face(pts, normal, color, bias = 0) {
+  face(pts, normal, color, bias = 0, flat = false, edge = true) {
     const c = this.cam;
     let cx = 0, cy = 0, cz = 0;
     for (const p of pts) { cx += p[0]; cy += p[1]; cz += p[2]; }
@@ -279,9 +279,12 @@ class Scene {
       if (s.z < NEAR) return;
       scr.push(s);
     }
-    const fill = shade(color, lightFor(normal[0], normal[1], normal[2]));
+    const fill = flat ? color : shade(color, lightFor(normal[0], normal[1], normal[2]));
+    let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9;
+    for (const q of scr) { bx0 = Math.min(bx0, q.x); by0 = Math.min(by0, q.y); bx1 = Math.max(bx1, q.x); by1 = Math.max(by1, q.y); }
     this.add({
       depth: this.depth(cx, cy) - bias,
+      bb: [bx0, by0, bx1, by1],
       draw(ctx) {
         ctx.fillStyle = fill;
         ctx.beginPath();
@@ -290,9 +293,140 @@ class Scene {
         ctx.closePath();
         ctx.fill();
         // A hairline of the same colour hides tiny gaps between faces.
-        ctx.strokeStyle = fill;
-        ctx.lineWidth = 0.6;
-        ctx.stroke();
+        if (edge) {
+          ctx.strokeStyle = fill;
+          ctx.lineWidth = 0.6;
+          ctx.stroke();
+        }
+      },
+    });
+  }
+
+  // Run build(), and treat everything it adds as ONE object at the given
+  // depth: its pieces are sorted among themselves, so a kart never turns
+  // "inside out" when another kart or a wall is next to it.
+  group(depth, build) {
+    const outer = this.items;
+    this.items = [];
+    build();
+    const parts = this.items;
+    this.items = outer;
+    if (!parts.length) return;
+    parts.sort((a, b) => b.depth - a.depth);
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (const p of parts) {
+      if (!p.bb) continue;
+      x0 = Math.min(x0, p.bb[0]); y0 = Math.min(y0, p.bb[1]); x1 = Math.max(x1, p.bb[2]); y1 = Math.max(y1, p.bb[3]);
+    }
+    const alpha = this.alpha;
+    this.add({
+      depth,
+      draw(ctx) {
+        if (alpha >= 1 || x1 < x0) {
+          for (const p of parts) p.draw(ctx);
+          return;
+        }
+        // See-through (the ghost): draw it solid on a spare canvas first, then
+        // lay that on the screen at once, so overlapping pieces don't show through each other.
+        const cw = ctx.canvas.width, ch = ctx.canvas.height;
+        const bx = Math.max(0, Math.floor(x0 - 4)), by = Math.max(0, Math.floor(y0 - 4));
+        const w = Math.min(cw, Math.ceil(x1 + 4)) - bx, h = Math.min(ch, Math.ceil(y1 + 4)) - by;
+        if (w <= 0 || h <= 0) return;
+        if (!ghostLayer || ghostLayer.width !== cw || ghostLayer.height !== ch) {
+          ghostLayer = document.createElement('canvas');
+          ghostLayer.width = cw;
+          ghostLayer.height = ch;
+        }
+        const o = ghostLayer.getContext('2d');
+        o.clearRect(bx, by, w, h);
+        for (const p of parts) p.draw(o);
+        ctx.drawImage(ghostLayer, bx, by, w, h, bx, by, w, h);
+      },
+    });
+  }
+
+  // A flat face whose outward direction is worked out from its corners
+  // (pointing away from `centre`, the middle of the object it belongs to).
+  solid(pts, color, centre, bias = 0) {
+    const a = pts[0], b = pts[1], c = pts[2];
+    let nx = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]);
+    let ny = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]);
+    let nz = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+    let mx = 0, my = 0, mz = 0;
+    for (const p of pts) { mx += p[0]; my += p[1]; mz += p[2]; }
+    mx /= pts.length; my /= pts.length; mz /= pts.length;
+    if (nx * (mx - centre[0]) + ny * (my - centre[1]) + nz * (mz - centre[2]) < 0) { nx = -nx; ny = -ny; nz = -nz; }
+    this.face(pts, [nx, ny, nz], color, bias);
+  }
+
+  // A tapering solid shape. `L` turns kart coordinates (forwards, sideways, up)
+  // into world coordinates; each section is [forwards, sideways centre,
+  // half-width, bottom, top]. Joining sections of different sizes gives
+  // wedges, noses and curved pods.
+  loft(L, sections, color) {
+    let sx = 0, sy = 0, sz = 0;
+    for (const q of sections) { const m = L(q[0], q[1], (q[3] + q[4]) / 2); sx += m[0]; sy += m[1]; sz += m[2]; }
+    const centre = [sx / sections.length, sy / sections.length, sz / sections.length];
+    const P = (q, side, top) => L(q[0], q[1] + side * q[2], top ? q[4] : q[3]);
+    for (let i = 0; i + 1 < sections.length; i++) {
+      const a = sections[i], b = sections[i + 1];
+      this.solid([P(a, -1, 1), P(b, -1, 1), P(b, 1, 1), P(a, 1, 1)], color, centre);   // top
+      this.solid([P(a, -1, 0), P(b, -1, 0), P(b, -1, 1), P(a, -1, 1)], color, centre); // left side
+      this.solid([P(a, 1, 0), P(b, 1, 0), P(b, 1, 1), P(a, 1, 1)], color, centre);     // right side
+    }
+    const first = sections[0], last = sections[sections.length - 1];
+    this.solid([P(first, -1, 0), P(first, 1, 0), P(first, 1, 1), P(first, -1, 1)], color, centre); // back
+    this.solid([P(last, -1, 0), P(last, 1, 0), P(last, 1, 1), P(last, -1, 1)], color, centre);     // front
+  }
+
+  // A round tyre: a many-sided drum with a hub cap. `steer` turns it (front wheels).
+  wheel(L, h, lx, ly, radius, width, steer, segs) {
+    const u = [Math.cos(h + steer), Math.sin(h + steer)];   // the way it rolls
+    const v = [-u[1], u[0]];                                // along its axle
+    const c = L(lx, ly, radius);
+    const ring = (side, r) => {
+      const pts = [];
+      for (let i = 0; i < segs; i++) {
+        const t = (i / segs) * Math.PI * 2;
+        pts.push([c[0] + u[0] * r * Math.cos(t) + v[0] * side * width / 2,
+          c[1] + u[1] * r * Math.cos(t) + v[1] * side * width / 2, radius + r * Math.sin(t)]);
+      }
+      return pts;
+    };
+    const outer = ring(1, radius), inner = ring(-1, radius);
+    for (let i = 0; i < segs; i++) {
+      const j = (i + 1) % segs, m = ((i + 0.5) / segs) * Math.PI * 2;
+      this.face([inner[i], inner[j], outer[j], outer[i]], [u[0] * Math.cos(m), u[1] * Math.cos(m), Math.sin(m)], '#3b3b42', 0, false, false);
+    }
+    const out = Math.sign(ly) || 1;   // the cap facing away from the kart carries the hub
+    this.face(outer, [v[0], v[1], 0], '#34343a');
+    this.face(inner, [-v[0], -v[1], 0], '#34343a');
+    const hub = ring(out, radius * 0.5).map((q) => [q[0] + v[0] * out * 0.08, q[1] + v[1] * out * 0.08, q[2]]);
+    this.face(hub, [v[0] * out, v[1] * out, 0], '#aab0b6', 0.5);
+  }
+
+  // A race-number plate standing upright; dir 1 faces forwards, -1 backwards.
+  plate(L, h, lx, hw, z0, z1, dir, number) {
+    const pts = [L(lx, -hw, z0), L(lx, hw, z0), L(lx, hw, z1), L(lx, -hw, z1)];
+    const n = [Math.cos(h) * dir, Math.sin(h) * dir, 0];
+    const mid = L(lx, 0, (z0 + z1) / 2);
+    this.face(pts, n, '#f4f3ee', 0, true);
+    const c = this.cam;
+    if (n[0] * (c.x - mid[0]) + n[1] * (c.y - mid[1]) <= 0) return;  // seen from the other side
+    const sp = this.project(mid[0], mid[1], mid[2]);
+    if (sp.z < NEAR) return;
+    const size = ((z1 - z0) * 0.78 * this.f) / sp.z;
+    if (size < 5) return;
+    const text = String(number);
+    this.add({
+      depth: this.depth(mid[0], mid[1]) - 0.3,
+      bb: [sp.x - size, sp.y - size, sp.x + size, sp.y + size],
+      draw(ctx) {
+        ctx.fillStyle = '#16161a';
+        ctx.font = 'bold ' + Math.round(size) + 'px system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, sp.x, sp.y + size * 0.04);
       },
     });
   }
@@ -326,44 +460,97 @@ class Scene {
   kart(k) {
     if (!this.visible(k.x, k.y, 20)) return;
     const h = k.heading, x = k.x, y = k.y;
-    const B = (x0, x1, y0, y1, z0, z1, color) => this.box(x, y, h, x0, x1, y0, y1, z0, z1, color);
-    B(-12, 12, -6, 6, 1, 2, '#2a2a2a');              // chassis
-    B(-13, -12, -6, 6, 1, 4, '#333333');             // rear bumper
-    B(6, 11, 5.5, 8.5, 0, 5, '#151515');             // front wheels
-    B(6, 11, -8.5, -5.5, 0, 5, '#151515');
-    B(-12, -5, 5.5, 9.5, 0, 5.5, '#151515');         // rear wheels
-    B(-12, -5, -9.5, -5.5, 0, 5.5, '#151515');
-    B(7, 13, -5, 5, 1.5, 4.5, k.body);               // nose
-    B(-6, 6, 3.5, 6.5, 1.5, 4.5, k.body);            // side pods
-    B(-6, 6, -6.5, -3.5, 1.5, 4.5, k.body);
-    B(-7, 7, -3.5, 3.5, 2, 6, k.body);               // body
-    if (k.stripes) {
-      const w = 1.1, n = k.stripes.length;
-      k.stripes.forEach((c, i) => B(-7, 13, (i - n / 2) * w, (i - n / 2 + 1) * w, 4.5, 6.3, c));
-    } else {
-      B(-7, 13, -1.2, 1.2, 4.5, 6.3, k.trim);        // racing stripe
-    }
-    B(-6, -1.5, -2.5, 2.5, 6, 9.5, k.trim);          // driver's body
-    // Helmet: a circle.
-    const hx = x + Math.cos(h) * -3.5, hy = y + Math.sin(h) * -3.5;
-    const s = this.project(hx, hy, 11.8);
-    if (s.z > NEAR) {
-      const r = (2.5 * this.f) / s.z;
-      const color = k.helmet;
-      this.add({
-        depth: this.depth(hx, hy) - 0.5,
-        draw(ctx) {
-          ctx.fillStyle = color;
-          ctx.beginPath();
-          ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = 'rgba(0,0,0,0.25)';
-          ctx.beginPath();
-          ctx.arc(s.x + r * 0.2, s.y + r * 0.15, r * 0.8, 0, Math.PI * 2);
-          ctx.fill();
-        },
+    const dist = this.depth(x, y);
+    const segs = dist < 100 ? 16 : dist < 220 ? 12 : dist < 420 ? 8 : 6;   // rounder wheels when close
+    const detail = dist < 320;                           // arms, plates, engine...
+    const fx = Math.cos(h), fy = Math.sin(h), rx = -fy, ry = fx;
+    // Kart coordinates (forwards, sideways, up) -> world coordinates.
+    const L = (lx, ly, z) => [x + fx * lx + rx * ly, y + fy * lx + ry * ly, z];
+    const dark = '#1d1d21', body = k.body, suit = k.trim;
+    const steer = (k.steerVisual || 0) * 0.45;
+
+    this.group(dist, () => {
+      // --- Chassis, bumpers and axles ---
+      this.loft(L, [[-11.5, 0, 5.4, 1.2, 2.2], [8, 0, 5.4, 1.2, 2.2]], dark);           // floor pan
+      this.loft(L, [[-13.4, 0, 6.2, 1.3, 3.2], [-12, 0, 6.6, 1.3, 3.2]], body);         // rear bumper cover
+      this.loft(L, [[12.8, 0, 5.8, 1.2, 2.5], [14, 0, 5.8, 1.2, 2.5]], '#2a2a2f');      // front bumper
+      if (detail) this.loft(L, [[-8.6, 0, 6.2, 2.3, 3.2], [-7.6, 0, 6.2, 2.3, 3.2]], '#3a3a40'); // rear axle
+
+      // --- Wheels: small and narrow at the front (they turn), big and wide at the back ---
+      for (const side of [-1, 1]) {
+        this.wheel(L, h, 8.8, side * 6.1, 3.5, 3.4, steer, segs);
+        this.wheel(L, h, -8.0, side * 6.7, 3.9, 4.4, 0, segs);
+      }
+
+      // --- Nose cone, with the team stripes along its top ---
+      const nose = [[1, 0, 5.0, 1.6, 4.8], [6, 0, 4.5, 1.5, 4.4], [10, 0, 3.4, 1.5, 3.4], [13, 0, 2.2, 1.6, 2.7]];
+      this.loft(L, nose, body);
+      const stripes = k.stripes || [k.trim];
+      const sw = k.stripes ? 0.75 : 1.4;
+      stripes.forEach((c, i) => {
+        const yc = (i - (stripes.length - 1) / 2) * sw;
+        this.loft(L, nose.map((q) => [q[0], yc, sw / 2, q[4] - 0.05, q[4] + 0.12]), c);
       });
-    }
+      if (detail) this.plate(L, h, 12.4, 2.3, 2.7, 5.9, 1, k.number || 0);   // front number plate
+
+      // --- Side pods ---
+      for (const side of [-1, 1]) {
+        this.loft(L, [[-5.5, side * 5.0, 1.5, 1.5, 4.0], [-1, side * 5.2, 1.7, 1.5, 5.0], [5, side * 4.9, 1.4, 1.5, 3.6]], body);
+      }
+
+      // --- Seat, engine and exhaust ---
+      this.loft(L, [[-9.5, 0, 3.7, 1.8, 9.2], [-6, 0, 3.9, 1.8, 7.6], [-3, 0, 2.8, 1.8, 3.6]], body);   // seat shell
+      if (detail) {
+        this.loft(L, [[-11.6, 3.7, 1.9, 1.8, 5.4], [-7, 3.7, 1.9, 1.8, 5.4]], '#9aa0a6');   // engine
+        this.loft(L, [[-12.6, 3.7, 0.6, 3.4, 4.4], [-10.8, 3.7, 0.6, 3.4, 4.4]], '#c9cdd1'); // exhaust
+        this.plate(L, h, -9.7, 2.4, 4.4, 8.6, -1, k.number || 0);                            // rear number plate
+      }
+
+      // --- Driver ---
+      this.loft(L, [[-3, 0, 2.2, 2.2, 3.6], [6, 0, 1.7, 2.4, 4.2]], '#222228');            // legs
+      this.loft(L, [[-6, 0, 2.7, 3.6, 9.6], [-2, 0, 2.9, 3.6, 9.4]], suit);                // body
+      if (detail) {
+        for (const side of [-1, 1]) {
+          this.loft(L, [[-3.8, side * 3.4, 0.9, 7.6, 9.4], [3.4, side * 2.1, 0.8, 6.3, 7.5]], suit);  // arms
+        }
+      }
+      this.loft(L, [[2.6, 0, 2.3, 5.9, 6.4], [4.8, 0, 2.3, 7.3, 7.8]], '#111114');            // steering wheel
+      this.loft(L, [[3, 0, 0.4, 2.4, 6.0], [3.5, 0, 0.4, 2.4, 6.4]], '#2a2a2f');              // column
+
+      // --- Helmet, with a dark visor when it is facing you ---
+      const hx = x - fx * 3.4, hy = y - fy * 3.4;
+      const hp = this.project(hx, hy, 11.6);
+      if (hp.z > NEAR) {
+        const r = (2.9 * this.f) / hp.z;
+        const color = k.helmet, trimColor = k.trim;
+        const facing = (this.cam.x - hx) * fx + (this.cam.y - hy) * fy > 0;
+        const vp = this.project(hx + fx * 2.2, hy + fy * 2.2, 11.2);
+        this.add({
+          depth: this.depth(hx, hy) - 0.5,
+          bb: [hp.x - r, hp.y - r, hp.x + r, hp.y + r],
+          draw(ctx) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(hp.x, hp.y, r, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = 'rgba(0,0,0,0.22)';             // shading on the lower right
+            ctx.beginPath();
+            ctx.arc(hp.x + r * 0.22, hp.y + r * 0.2, r * 0.78, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = trimColor;                       // a stripe over the top
+            ctx.fillRect(hp.x - r * 0.12, hp.y - r, r * 0.24, r * 0.9);
+            if (facing) {
+              ctx.fillStyle = '#0c0f14';
+              ctx.beginPath();
+              ctx.ellipse(vp.x, vp.y, r * 0.78, r * 0.34, 0, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.fillStyle = 'rgba(255,255,255,0.35)';
+              ctx.fillRect(vp.x - r * 0.45, vp.y - r * 0.18, r * 0.35, r * 0.07);
+            }
+          },
+        });
+      }
+    });
   }
 
   pyramid(item) {
@@ -474,6 +661,9 @@ class Scene {
 }
 
 // ---------- Putting a whole 3D view together ----------
+
+// A spare canvas used to draw the see-through ghost kart in one go.
+let ghostLayer = null;
 
 const grounds = new Map();
 function groundFor(track) {

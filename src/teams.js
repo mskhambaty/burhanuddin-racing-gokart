@@ -34,5 +34,6 @@ function playerSetup(playerIndex, teamId) {
     trim: team.trim,
     stripes: team.stripes,
     helmet: team.helmet,
+    number: 7,
   };
 }

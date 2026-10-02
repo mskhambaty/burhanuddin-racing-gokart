@@ -295,6 +295,21 @@ class Track {
     return c;
   }
 
+  // A small copy of the map for the minimap (made once, because shrinking the
+  // whole map every frame would be slow).
+  minimapImage(w, h) {
+    if (!this.miniCanvas || this.miniCanvas.width !== w) {
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      const mctx = c.getContext('2d');
+      mctx.imageSmoothingQuality = 'high';
+      mctx.drawImage(this.render(), 0, 0, w, h);
+      this.miniCanvas = c;
+    }
+    return this.miniCanvas;
+  }
+
   // Draw the ground once into an off-screen canvas; each frame just copies
   // that picture, which is much faster than redrawing everything.
   // Scenery shadows are painted on the ground so they work in 3D too.

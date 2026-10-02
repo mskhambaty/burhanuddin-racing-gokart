@@ -2,7 +2,7 @@
 
 // Bump this (and the ?v= numbers in index.html) whenever you release a change.
 // It's shown on the title screen so you can tell which version you are playing.
-const GAME_VERSION = '8  ·  30 Sep 2026';
+const GAME_VERSION = '9  ·  2 Oct 2026';
 
 // The screen is always 1280 x 720. The world (the map the tracks are built on)
 // is TRACK_SCALE times bigger in each direction, so a bigger TRACK_SCALE means

@@ -39,6 +39,8 @@ A minimap in the corner shows the whole track in the 3D views.
 
 **II** / P = pause · **Esc** = back to the garage.
 
+![A go-kart up close](screenshot-kart.png)
+
 ## Tracks
 
 Pick the track in the garage (◀ ▶ or the ← → keys). Each track keeps its own best lap.
@@ -92,6 +94,8 @@ Your best lap on each track is saved as the track record.
 
 - Three Cairo tracks: Giza Pyramids Circuit, Cairo City Circuit and Nile Corniche (3 laps each)
 - YOU mode: race the ghost of your own best time on each track
+- Real-looking go-karts: round tyres (the front ones turn with the steering), a nose cone, side pods,
+  seat, engine and exhaust, race-number plates, and a driver with arms, steering wheel and a helmet with a visor
 - Three views: steering wheel (3D, from the driver's seat), rear (3D), top down
 - Trackpad driving (steer by sliding, auto-accelerate, hold to brake) or keyboard
 - Realistic-ish kart handling: grip, sliding, skid marks, sand run-off, tyre walls
@@ -116,6 +120,8 @@ Your best lap on each track is saved as the track record.
 - **Change how fast the computer drivers are:** `topKmh` for each difficulty in `DIFFICULTIES` in `src/ai.js`.
 - **Change how the trackpad steers:** `TRACKPAD_FULL_LOCK` in `src/input.js` (smaller = more sensitive).
 - **Move the cameras:** `CAMERAS` at the top of `src/view3d.js`.
+- **Change how the karts look:** the 3D model is `Scene.kart` in `src/view3d.js` and the top-down one is `Kart.draw`
+  in `src/kart.js`; computer drivers' numbers and colours are in `AI_DRIVERS` in `src/ai.js`.
 - **Change how the kart drives:** edit `KART_BASE_STATS` at the top of `src/kart.js`.
 - **Add a team or change team colours:** `TEAMS` in `src/teams.js`.
 - **Change prices, prizes or how much upgrades help:** everything is in `src/economy.js`.
@@ -128,7 +134,7 @@ Your best lap on each track is saved as the track record.
 | `index.html` | The page — open it to play |
 | `src/main.js` | Game loop and screens (menu, race, pause), switching views |
 | `src/input.js` | Trackpad and keyboard controls |
-| `src/view3d.js` | The 3D views: ground, sky, 3D karts/pyramids/palms, steering wheel |
+| `src/view3d.js` | The 3D views: ground, sky, 3D karts/pyramids/palms, steering wheel. The 3D go-kart model is `Scene.kart`. |
 | `src/kart.js` | Kart physics and drawing |
 | `src/track.js` | Turns points into a track; drawing helpers (pyramids, palms, grandstand) |
 | `src/tracks/` | One file per track (`giza.js`, `cairo.js`, `nile.js`) |

@@ -169,7 +169,7 @@ const HUD = {
     const w = 256, h = 144, x = GAME_WIDTH - w - 12, y = GAME_HEIGHT - h - 12;
     ctx.save();
     ctx.globalAlpha = 0.9;
-    ctx.drawImage(race.track.render(), x, y, w, h);
+    ctx.drawImage(race.track.minimapImage(w, h), x, y);
     ctx.restore();
     ctx.strokeStyle = COLORS.gold;
     ctx.lineWidth = 2;
